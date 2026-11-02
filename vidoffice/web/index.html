@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VidOffice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --tinta: #2B2740; --tinta2: #3D3860; --papel: #FBF8F2; --papel2: #F3EEE3; --linha: #E3DCCD;
+    --suave: #766F8C; --corredor: #EBDCC4; --foco: #4C7DF0; --ok: #2E9E6B; --aviso: #E0A12A;
+    --titulo: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --corpo: "Figtree", "Segoe UI", system-ui, sans-serif;
+    --pixel: "Pixelify Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--tinta); color: var(--tinta); font: 15px/1.5 var(--corpo); overflow: hidden; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
+
+  /* ------- barra de cima ------- */
+  header { height: 58px; display: flex; align-items: center; gap: 16px; padding: 0 18px; color: #F3EEE3; background: var(--tinta); }
+  .marca { font: 700 22px/1 var(--pixel); letter-spacing: .5px; }
+  .marca b { color: #F2B84B; font-weight: 700; }
+  .projeto-btn { display: flex; align-items: center; gap: 8px; background: var(--tinta2); border: 0; border-radius: 10px; padding: 8px 14px;
+                 color: #F3EEE3; max-width: 320px; font-weight: 600; }
+  .projeto-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pips { display: flex; gap: 5px; margin-left: 4px; }
+  .pip { width: 11px; height: 11px; border-radius: 3px; background: #57517D; transition: background .25s; }
+  .pip.on { background: var(--cor); }
+  .espaco { flex: 1; }
+  .btn-topo { background: transparent; border: 1.5px solid #5B5580; border-radius: 10px; padding: 7px 13px; color: #F3EEE3; }
+  .btn-topo:hover { background: var(--tinta2); }
+  .btn-topo[aria-pressed="true"] { background: #F2B84B; border-color: #F2B84B; color: var(--tinta); font-weight: 600; }
+  .modo { font-size: 13px; padding: 4px 10px; border-radius: 999px; background: #57517D; }
+  .modo.ia { background: var(--ok); }
+
+  /* ------- palco ------- */
+  main { height: calc(100% - 58px); display: flex; background: var(--corredor); position: relative; }
+  #palco { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 14px; position: relative; }
+  #mundo { position: relative; width: min(100%, calc((100vh - 58px - 28px) * 1.6)); aspect-ratio: 640 / 400; }
+  #mapa { width: 100%; height: 100%; display: block; image-rendering: pixelated; border-radius: 6px; box-shadow: 0 6px 0 rgba(43,39,64,.25); }
+  .etiqueta { position: absolute; transform: translate(-50%, -100%); display: flex; align-items: center; gap: 5px; white-space: nowrap; pointer-events: none;
+              background: rgba(43,39,64,.92); color: #fff; font: 500 12px/1 var(--pixel); padding: 4px 7px 4px 6px; border-radius: 7px; }
+  .etiqueta i { width: 7px; height: 7px; border-radius: 2px; background: var(--cor); display: block; }
+  .etiqueta em { font-style: normal; font-weight: 700; }
+  .etiqueta em.t { color: #F2B84B; } .etiqueta em.a { color: #9AF0C2; } .etiqueta em.p { color: #fff; animation: pulso 1s steps(2) infinite; }
+  .sala { position: absolute; transform: none; background: transparent; color: rgba(43,39,64,.7); font: 700 11px/1 var(--pixel); padding: 0; pointer-events: none; }
+  #dica { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); background: rgba(43,39,64,.9); color: #fff; font-size: 13px;
+          padding: 7px 14px; border-radius: 999px; pointer-events: none; max-width: 92%; text-align: center; }
+  #paleta { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); display: none; gap: 6px; flex-wrap: wrap; justify-content: center;
+            background: var(--papel); border-radius: 14px; padding: 8px; box-shadow: 0 4px 0 rgba(43,39,64,.2); max-width: 96%; }
+  #paleta.on { display: flex; }
+  #paleta button { background: var(--papel2); border: 1.5px solid var(--linha); border-radius: 8px; padding: 5px 10px; font-size: 13px; }
+  #paleta button:hover { border-color: var(--tinta2); }
+  #paleta .perigo { color: #B3412E; }
+  #paleta .ok { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+
+  /* ------- painel do funcionário ------- */
+  #painel { width: 440px; max-width: 100%; background: var(--papel); border-left: 4px solid var(--tinta); display: none; flex-direction: column; min-height: 0; }
+  #painel.aberto { display: flex; }
+  .p-topo { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1.5px solid var(--linha); background: var(--papel2); }
+  .p-topo canvas { width: 44px; height: 56px; image-rendering: pixelated; flex: none; background: var(--cor-fraca, #fff); border-radius: 8px; }
+  .p-topo h2 { margin: 0; font: 700 20px/1.1 var(--titulo); }
+  .p-topo p { margin: 2px 0 0; color: var(--suave); font-size: 13px; }
+  .p-topo .grow { flex: 1; min-width: 0; }
+  .icone { background: none; border: 0; font-size: 20px; line-height: 1; padding: 6px 8px; border-radius: 8px; color: var(--suave); }
+  .icone:hover { background: var(--linha); color: var(--tinta); }
+  .conversa { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .msg-eu { align-self: flex-end; max-width: 86%; background: var(--tinta); color: #fff; padding: 9px 13px; border-radius: 14px 14px 3px 14px; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg-func { align-self: flex-start; max-width: 100%; width: 100%; background: #fff; border: 1.5px solid var(--linha); border-left: 5px solid var(--cor); border-radius: 4px 14px 14px 14px; padding: 12px 14px; }
+  .msg-func.aprovada { border-color: var(--ok); border-left-color: var(--ok); background: #F4FBF7; }
+  .msg-cab { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; color: var(--suave); flex-wrap: wrap; }
+  .selo { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--papel2); color: var(--suave); }
+  .selo.ok { background: #DDF3E8; color: #1F7A52; } .selo.ex { background: #FBEBC8; color: #8A5E0C; } .selo.man { background: #E3E8F8; color: #3B58B5; }
+  .md p { margin: 0 0 8px; } .md ul, .md ol { margin: 0 0 8px; padding-left: 20px; } .md blockquote { margin: 0 0 8px; padding: 6px 10px; background: var(--papel2); border-left: 3px solid var(--linha); color: var(--suave); font-size: 13px; }
+  .md table { border-collapse: collapse; font-size: 12.5px; margin: 0 0 8px; display: block; overflow-x: auto; }
+  .md th, .md td { border: 1px solid var(--linha); padding: 4px 7px; text-align: left; vertical-align: top; }
+  .md mark { background: #FFE9A8; padding: 0 3px; border-radius: 3px; }
+  .md :last-child { margin-bottom: 0; }
+  .acoes { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .b { border: 1.5px solid var(--tinta); background: transparent; border-radius: 9px; padding: 6px 12px; font-size: 13.5px; font-weight: 600; }
+  .b:hover { background: var(--papel2); }
+  .b.forte { background: var(--ok); border-color: var(--ok); color: #fff; } .b.forte:hover { background: #247F55; }
+  .b.escuro { background: var(--tinta); color: #fff; } .b.escuro:hover { background: var(--tinta2); }
+  .b:disabled { opacity: .5; cursor: default; }
+  textarea.edit { width: 100%; min-height: 220px; font: 14px/1.5 var(--corpo); border: 1.5px solid var(--tinta2); border-radius: 10px; padding: 10px; resize: vertical; background: #fff; }
+  .vazio { color: var(--suave); text-align: center; padding: 28px 12px; }
+  .digitando { align-self: flex-start; display: flex; gap: 5px; padding: 12px 14px; background: #fff; border: 1.5px solid var(--linha); border-radius: 14px; }
+  .digitando span { width: 7px; height: 7px; background: var(--cor); border-radius: 2px; animation: pulo 1s infinite; }
+  .digitando span:nth-child(2) { animation-delay: .15s; } .digitando span:nth-child(3) { animation-delay: .3s; }
+  .erro { align-self: stretch; background: #FDECE8; color: #8F2B18; border-radius: 10px; padding: 9px 12px; font-size: 13.5px; }
+  .envio { border-top: 1.5px solid var(--linha); padding: 12px 16px 14px; background: var(--papel2); }
+  .sugestoes { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .sugestoes button { border: 1.5px solid var(--linha); background: #fff; border-radius: 999px; padding: 3px 11px; font-size: 12.5px; }
+  .sugestoes button:hover { border-color: var(--tinta2); }
+  .linha-envio { display: flex; gap: 8px; align-items: flex-end; }
+  .linha-envio textarea { flex: 1; resize: none; min-height: 56px; max-height: 140px; border: 1.5px solid var(--linha); border-radius: 12px; padding: 10px 12px; font: inherit; background: #fff; }
+  .linha-envio textarea:focus { border-color: var(--tinta2); outline: none; }
+  .linha-envio .b { height: 44px; }
+
+  /* arquivos e entrega */
+  .pasta { margin-bottom: 14px; }
+  .pasta h3 { margin: 0 0 6px; font: 700 15px/1.2 var(--titulo); display: flex; align-items: center; gap: 8px; }
+  .pasta .zona { border: 2px dashed var(--linha); border-radius: 10px; padding: 8px 10px; background: #fff; font-size: 13.5px; }
+  .pasta .zona.arrasta { border-color: var(--foco); background: #EEF3FE; }
+  .arq { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--papel2); }
+  .arq a { color: var(--tinta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .arq small { color: var(--suave); }
+  .lista-ok { list-style: none; padding: 0; margin: 0 0 12px; }
+  .lista-ok li { display: flex; gap: 8px; padding: 5px 0; align-items: center; }
+  .caixa { width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--linha); flex: none; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; color: #fff; }
+  .caixa.on { background: var(--ok); border-color: var(--ok); }
+  .personalizar { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; padding: 10px 16px; background: var(--papel2); border-bottom: 1.5px solid var(--linha); align-items: center; }
+  .personalizar[hidden] { display: none; }
+  .personalizar input[type=text] { border: 1.5px solid var(--linha); border-radius: 8px; padding: 6px 9px; font: inherit; }
+  .personalizar input[type=color] { width: 38px; height: 34px; border: 1.5px solid var(--linha); border-radius: 8px; padding: 2px; background: #fff; }
+
+  /* ------- janelas ------- */
+  .fundo { position: fixed; inset: 0; background: rgba(43,39,64,.6); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
+  .fundo.aberto { display: flex; }
+  .janela { background: var(--papel); border-radius: 16px; padding: 22px; width: min(460px, 100%); box-shadow: 0 8px 0 rgba(0,0,0,.2); }
+  .janela h2 { margin: 0 0 14px; font: 700 22px/1.1 var(--titulo); }
+  .janela label { display: block; font-weight: 600; font-size: 13.5px; margin: 12px 0 4px; }
+  .janela input[type=text], .janela input[type=password] { width: 100%; border: 1.5px solid var(--linha); border-radius: 10px; padding: 9px 11px; font: inherit; background: #fff; }
+  .janela p.nota { color: var(--suave); font-size: 13px; margin: 6px 0 0; }
+  .janela .acoes { justify-content: flex-end; margin-top: 18px; }
+  .lista-projetos { max-height: 260px; overflow-y: auto; margin: 0 0 12px; padding: 0; list-style: none; }
+  .lista-projetos li button { width: 100%; text-align: left; background: #fff; border: 1.5px solid var(--linha); border-radius: 10px; padding: 8px 12px; margin-bottom: 6px; }
+  .lista-projetos li button:hover, .lista-projetos li button.atual { border-color: var(--tinta); }
+  .lista-projetos small { color: var(--suave); display: block; }
+
+  @keyframes pulso { 50% { opacity: .35; } }
+  @keyframes pulo { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+  @media (max-width: 900px) {
+    #painel { position: absolute; inset: 0; width: 100%; z-index: 10; border-left: 0; }
+    .pips, .modo, .marca { display: none; }
+    header { gap: 8px; padding: 0 10px; } .projeto-btn { max-width: 170px; } .btn-topo { padding: 6px 9px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="marca">Vid<b>Office</b></div>
+  <button class="projeto-btn" id="btn-projeto" aria-haspopup="dialog"><span id="nome-projeto">Escolher projeto</span><span aria-hidden="true">▾</span></button>
+  <div class="pips" id="pips" aria-label="Etapas aprovadas"></div>
+  <div class="espaco"></div>
+  <span class="modo" id="modo"></span>
+  <button class="btn-topo" id="btn-decorar" aria-pressed="false">Decorar</button>
+  <button class="btn-topo" id="btn-config">Configurações</button>
+</header>
+<main>
+  <div id="palco">
+    <div id="mundo">
+      <canvas id="mapa" width="640" height="400"></canvas>
+      <div id="etiquetas"></div>
+    </div>
+    <div id="dica">Ande com as setas ou WASD. Clique em um funcionário, ou aperte E perto dele, para conversar.</div>
+    <div id="paleta" role="toolbar" aria-label="Decoração"></div>
+  </div>
+  <aside id="painel" aria-live="polite"></aside>
+</main>
+
+<div class="fundo" id="j-projetos"><div class="janela" role="dialog" aria-label="Projetos">
+  <h2>Projetos</h2>
+  <ul class="lista-projetos" id="lista-projetos"></ul>
+  <label for="np-titulo">Novo projeto</label>
+  <input type="text" id="np-titulo" placeholder="Ex.: GTA 6: tudo que mudou" maxlength="120">
+  <label for="np-tema">Tema ou nicho <small style="font-weight:400;color:var(--suave)">(opcional)</small></label>
+  <input type="text" id="np-tema" placeholder="Ex.: jogos, tecnologia, música" maxlength="300">
+  <div class="acoes"><button class="b" id="np-fechar">Fechar</button><button class="b escuro" id="np-criar">Criar projeto</button></div>
+</div></div>
+
+<div class="fundo" id="j-config"><div class="janela" role="dialog" aria-label="Configurações">
+  <h2>Configurações</h2>
+  <label for="cfg-chave">Chave da IA (Anthropic)</label>
+  <input type="password" id="cfg-chave" autocomplete="off" placeholder="Cole a chave aqui">
+  <p class="nota" id="cfg-chave-nota"></p>
+  <label for="cfg-modelo">Modelo</label>
+  <input type="text" id="cfg-modelo" autocomplete="off">
+  <p class="nota">A chave fica só no seu computador, na pasta de dados. Sem chave, os funcionários respondem em modo exemplo.</p>
+  <div class="acoes"><button class="b" id="cfg-remover">Remover chave</button><button class="b" id="cfg-fechar">Fechar</button><button class="b escuro" id="cfg-salvar">Salvar</button></div>
+</div></div>
+
+<script>
+"use strict";
+/* =====================================================================
+   Dados do escritório: salas, portas, mesas e decoração padrão
+   (coordenadas em pixels do mapa de 640 x 400)
+   ===================================================================== */
+const L = 640, A = 400;
+const SALAS = [
+  { id: "criacao",  rot: "Criação",           x: 16,  y: 16,  w: 288, h: 176, pisos: ["#C8D2F3", "#BFCBEF"], portas: [["b", 124, 164], ["r", 96, 132]] },
+  { id: "producao", rot: "Produção",          x: 336, y: 16,  w: 288, h: 176, pisos: ["#BFE5D6", "#B5DECE"], portas: [["b", 468, 508], ["l", 96, 132]] },
+  { id: "arquivos", rot: "Arquivos",          x: 16,  y: 224, w: 208, h: 160, pisos: ["#CDD3DE", "#C4CBD8"], portas: [["t", 84, 124]] },
+  { id: "lounge",   rot: "Sala de descanso",  x: 240, y: 224, w: 160, h: 160, pisos: ["#F2D3DA", "#EBC9D2"], portas: [["t", 288, 352]] },
+  { id: "entrega",  rot: "Entrega",           x: 416, y: 224, w: 208, h: 160, pisos: ["#F7D9B8", "#F1CFAA"], portas: [["t", 496, 536]] },
+];
+const MESAS = {   // posição da mesa (canto superior esquerdo) e largura
+  ideias:   { x: 40,  y: 72,  w: 48, tela: 1 }, roteiro: { x: 128, y: 72, w: 48, tela: 1 }, titulo: { x: 216, y: 72, w: 48, tela: 1 },
+  voz:      { x: 372, y: 72,  w: 48, tela: 1, microfone: true }, editor: { x: 484, y: 72, w: 64, tela: 2 },
+  thumb:    { x: 372, y: 136, w: 48, tela: 1 }, shorts: { x: 484, y: 136, w: 48, tela: 1, vertical: true },
+  publicar: { x: 480, y: 300, w: 64, tela: 2 }, arquivos: { x: 76, y: 292, w: 56, tela: 0 },
+};
+const PELE = ["#F2C9A5", "#D9A27A", "#A56C45", "#7A4A2B", "#F6D7BD", "#C58B62", "#8D5A38", "#E8B994"];
+const CABELO = ["#2B2118", "#5A3A22", "#B5782E", "#1E1A2B", "#8A3B2A", "#D8B45A", "#3B2A4A", "#4A4A4A"];
+const APARENCIA = { ideias: [0, 3], roteiro: [1, 0], titulo: [2, 1], voz: [4, 4], editor: [3, 2], thumb: [5, 6], shorts: [6, 7], publicar: [7, 5], arquivos: [2, 3] };
+const TIPOS = {  // [largura, altura, sólido]
+  planta: [14, 20, 1], planta_grande: [18, 28, 1], sofa: [48, 20, 1], mesa_centro: [28, 14, 1], tapete: [64, 38, 0],
+  estante: [40, 22, 0], quadro_branco: [36, 20, 0], mesa: [36, 16, 1], pufe: [14, 12, 1], cafe: [16, 22, 1],
+  impressora: [20, 14, 1], arquivo: [16, 26, 1],
+};
+const NOMES_TIPO = { planta: "Planta", planta_grande: "Planta grande", sofa: "Sofá", mesa_centro: "Mesa de centro", tapete: "Tapete", estante: "Estante",
+  quadro_branco: "Quadro", mesa: "Mesa", pufe: "Pufe", cafe: "Café", impressora: "Impressora", arquivo: "Arquivo" };
+const DECORACAO_PADRAO = [
+  ["estante", 32, 20], ["quadro_branco", 140, 20], ["estante", 232, 20], ["planta", 28, 168], ["planta", 276, 168],
+  ["tapete", 120, 134], ["pufe", 134, 148], ["pufe", 176, 148],
+  ["estante", 352, 20], ["quadro_branco", 452, 20], ["estante", 548, 20], ["planta", 346, 168], ["planta", 598, 168],
+  ["tapete", 440, 140], ["cafe", 586, 120],
+  ["arquivo", 28, 236], ["arquivo", 48, 236], ["arquivo", 68, 236], ["arquivo", 148, 236], ["arquivo", 168, 236], ["arquivo", 188, 236],
+  ["planta", 30, 356], ["planta_grande", 192, 346],
+  ["sofa", 280, 240], ["tapete", 268, 290], ["mesa_centro", 290, 300], ["planta", 252, 358], ["planta_grande", 374, 346],
+  ["estante", 430, 238], ["impressora", 560, 252], ["planta", 438, 356], ["planta", 594, 356],
+].map(([tipo, x, y]) => ({ tipo, x, y }));
+
+/* =====================================================================
+   Estado
+   ===================================================================== */
+const S = { funcionarios: [], porId: {}, config: null, projetos: [], projeto: null, personal: { decoracao: null, funcionarios: {} },
+            decoracao: [], aberto: null, editandoDeco: false, sel: null, erros: {}, pensando: new Set() };
+const jog = { x: 320, y: 352, vx: 0, vy: 0, passo: 0, andando: false };
+const teclas = new Set();
+const $ = (s) => document.querySelector(s);
+const reduzMov = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function el(tag, cls, texto) { const e = document.createElement(tag); if (cls) e.className = cls; if (texto != null) e.textContent = texto; return e; }
+async function api(metodo, caminho, corpo) {
+  const r = await fetch(caminho, { method: metodo, headers: { "X-VidOffice": "1", "Content-Type": "application/json" }, body: corpo ? JSON.stringify(corpo) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.erro || "Algo deu errado.");
+  return j;
+}
+const func = (id) => { const f = S.porId[id], o = S.personal.funcionarios[id] || {}; return { ...f, nome: o.nome || f.nome, cor: o.cor || f.cor }; };
+
+/* =====================================================================
+   Desenho do mapa
+   ===================================================================== */
+const cv = $("#mapa"), cx = cv.getContext("2d");
+const R = (x, y, w, h, cor) => { cx.fillStyle = cor; cx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+const TINTA = "#2B2740", PAREDE = "#6A6490", PAREDE_FACE = "#8A84B3";
+
+function sombra(x, y, w) { cx.globalAlpha = .18; R(x - w / 2, y - 1, w, 3, "#000"); cx.globalAlpha = 1; }
+
+function pessoa(x, y, pele, cabelo, camisa, passo, sentado) {
+  sombra(x, y, 12);
+  const m = passo ? 1 : 0;
+  if (!sentado) { R(x - 4, y - 5, 3, 5 - m, "#2D2A45"); R(x + 1, y - 5, 3, 4 + m, "#2D2A45"); }
+  R(x - 5, y - 13, 10, 9, camisa);
+  R(x - 6, y - 12, 1, 6, camisa); R(x + 5, y - 12, 1, 6, camisa);
+  cx.globalAlpha = .18; R(x - 5, y - 6, 10, 2, "#000"); cx.globalAlpha = 1;
+  R(x - 4, y - 20, 8, 8, pele);
+  R(x - 5, y - 22, 10, 4, cabelo); R(x - 5, y - 20, 1, 4, cabelo); R(x + 4, y - 20, 1, 4, cabelo);
+  R(x - 2, y - 17, 1, 2, TINTA); R(x + 1, y - 17, 1, 2, TINTA);
+}
+
+function mesa(id, m, cor, estado, t) {
+  const { x, y, w } = m;
+  R(x, y + 4, w, 12, "#B98B5E"); R(x, y + 4, w, 2, "#D2A777"); R(x, y + 14, w, 2, "#8E6540");
+  if (m.tela) {
+    const telas = m.tela, tw = m.vertical ? 8 : 14, th = m.vertical ? 14 : 10;
+    for (let i = 0; i < telas; i++) {
+      const tx = x + (w - telas * (tw + 2)) / 2 + i * (tw + 2) + 1, ty = y - th + 6;
+      R(tx - 1, ty - 1, tw + 2, th + 2, "#1E1B30");
+      R(tx, ty, tw, th, estado === "trabalhando" ? "#D8F3FF" : cor);
+      if (estado === "trabalhando") for (let k = 0; k < 3; k++) R(tx + 1, ty + 1 + k * 3, 3 + ((t * 6 + k * 3) % (tw - 4)), 1, "#2B2740");
+      else { cx.globalAlpha = .45; R(tx + 1, ty + 1, tw - 2, 2, "#fff"); cx.globalAlpha = 1; }
+    }
+    R(x + w / 2 - 6, y + 9, 12, 3, "#EDE6D6");
+  }
+  if (m.microfone) { R(x + w - 12, y - 4, 2, 10, "#444"); R(x + w - 15, y - 6, 8, 4, "#2B2740"); }
+  if (id === "arquivos") { R(x, y - 6, w, 6, "#8E6540"); R(x + 4, y - 12, 10, 6, "#F2B84B"); R(x + 18, y - 11, 8, 5, "#fff"); }
+  if (id === "publicar") { R(x + w - 18, y - 6, 14, 10, "#fff"); R(x + w - 18, y - 6, 14, 2, "#F08A3C"); }
+}
+
+function item(tipo, x, y) {
+  const [w, h] = TIPOS[tipo];
+  switch (tipo) {
+    case "planta": R(x + 4, y + 13, 7, 7, "#B5683E"); R(x + 2, y + 4, 11, 10, "#3E9B55"); R(x + 5, y, 6, 8, "#52B86A"); R(x, y + 8, 4, 4, "#2F7D44"); break;
+    case "planta_grande": R(x + 4, y + 19, 10, 9, "#B5683E"); R(x + 1, y + 6, 16, 14, "#3E9B55"); R(x + 5, y, 9, 10, "#52B86A"); R(x + 12, y + 8, 6, 6, "#2F7D44"); break;
+    case "sofa": R(x, y + 4, w, h - 4, "#C9577A"); R(x, y, w, 8, "#B24367"); R(x + 4, y + 8, w - 8, 8, "#DE7592"); R(x - 2, y + 2, 5, h - 2, "#A93C5F"); R(x + w - 3, y + 2, 5, h - 2, "#A93C5F"); break;
+    case "mesa_centro": R(x, y, w, h, "#B98B5E"); R(x, y, w, 3, "#D2A777"); R(x + 4, y + h, 3, 3, "#8E6540"); R(x + w - 7, y + h, 3, 3, "#8E6540"); R(x + 10, y - 3, 6, 4, "#fff"); break;
+    case "tapete": R(x, y, w, h, "#E48F9F"); R(x + 3, y + 3, w - 6, h - 6, "#F4B6C2"); R(x + 7, y + 7, w - 14, h - 14, "#E48F9F"); break;
+    case "estante": R(x, y, w, h, "#7B5535"); R(x + 2, y + 2, w - 4, h - 4, "#4B3322");
+      ["#C9577A", "#4C7DF0", "#F2B84B", "#3E9B55", "#8B6CF0", "#E85FA0"].forEach((c, i) => { R(x + 3 + i * 6, y + 3, 4, 7, c); R(x + 3 + ((i + 2) % 6) * 6, y + 12, 4, 7, ["#F08A3C", "#1FB5A0", "#F2B84B"][i % 3]); }); break;
+    case "quadro_branco": R(x, y, w, h, "#9A9AB0"); R(x + 2, y + 2, w - 4, h - 4, "#fff"); R(x + 5, y + 6, 14, 2, "#4C7DF0"); R(x + 5, y + 10, 22, 2, "#E85FA0"); R(x + 5, y + 14, 10, 2, "#3E9B55"); break;
+    case "mesa": R(x, y + 4, w, h - 4, "#B98B5E"); R(x, y + 4, w, 2, "#D2A777"); R(x + 2, y + h, 3, 3, "#8E6540"); R(x + w - 5, y + h, 3, 3, "#8E6540"); break;
+    case "pufe": R(x, y + 2, w, h - 2, "#8B6CF0"); R(x + 1, y, w - 2, 5, "#A58CF5"); break;
+    case "cafe": R(x, y, w, h, "#4B4660"); R(x + 2, y + 2, w - 4, 8, "#9AB4C9"); R(x + 5, y + 13, 6, 5, "#fff"); R(x + 2, y + 10, w - 4, 2, "#2B2740"); break;
+    case "impressora": R(x, y + 4, w, h - 4, "#E8E8EE"); R(x + 2, y, w - 4, 6, "#fff"); R(x + 3, y + 8, w - 6, 2, "#3D3860"); break;
+    case "arquivo": R(x, y, w, h, "#8A93A6"); R(x + 1, y + 1, w - 2, 11, "#A6AEBF"); R(x + 1, y + 13, w - 2, 11, "#A6AEBF"); R(x + 5, y + 5, 6, 2, "#4B4660"); R(x + 5, y + 17, 6, 2, "#4B4660"); break;
+  }
+}
+
+function paredes() {
+  const T = 5, TOP = 16, faixas = [];
+  for (const s of SALAS) {
+    const lados = {
+      t: [s.x, s.y, s.w, TOP, "x"], b: [s.x, s.y + s.h - T, s.w, T, "x"],
+      l: [s.x, s.y, T, s.h, "y"], r: [s.x + s.w - T, s.y, T, s.h, "y"],
+    };
+    for (const [lado, [x, y, w, h, eixo]] of Object.entries(lados)) {
+      const portas = s.portas.filter((p) => p[0] === lado).map((p) => [p[1], p[2]]).sort((a, b) => a[0] - b[0]);
+      let ini = eixo === "x" ? x : y; const fim = eixo === "x" ? x + w : y + h;
+      const pedacos = [];
+      for (const [a, b] of portas) { if (a > ini) pedacos.push([ini, a]); ini = b; }
+      if (ini < fim) pedacos.push([ini, fim]);
+      for (const [a, b] of pedacos) faixas.push(eixo === "x" ? { x: a, y, w: b - a, h, lado } : { x, y: a, w, h: b - a, lado });
+    }
+  }
+  return faixas;
+}
+const FAIXAS = paredes();
+
+function desenharMundo(t) {
+  R(0, 0, L, A, "#EBDCC4");
+  for (let y = 0; y < A; y += 16) for (let x = 0; x < L; x += 16) if (((x + y) / 16) % 2) R(x, y, 16, 16, "#E6D5BB");
+  for (const s of SALAS) {
+    for (let y = 0; y < s.h; y += 16) for (let x = 0; x < s.w; x += 16) R(s.x + x, s.y + y, Math.min(16, s.w - x), Math.min(16, s.h - y), s.pisos[((x + y) / 16) % 2]);
+  }
+  for (const d of S.decoracao) if (d.tipo === "tapete") item(d.tipo, d.x, d.y);
+  for (const f of FAIXAS) {
+    R(f.x, f.y, f.w, f.h, PAREDE);
+    if (f.lado === "t") { R(f.x, f.y + 4, f.w, f.h - 4, PAREDE_FACE); R(f.x, f.y + f.h - 3, f.w, 3, "#5A5580"); }
+    R(f.x, f.y, f.w, 2, "#7E78A8");
+  }
+  // objetos ordenados por profundidade
+  const objs = [];
+  for (const d of S.decoracao) if (d.tipo !== "tapete") objs.push({ y: d.y + TIPOS[d.tipo][1], desenhar: () => item(d.tipo, d.x, d.y), deco: d });
+  for (const f of S.funcionarios) {
+    const m = MESAS[f.id], fn = func(f.id), est = estadoDe(f.id);
+    objs.push({ y: m.y + 5, desenhar: () => { const [p, c] = APARENCIA[f.id]; pessoa(m.x + m.w / 2, m.y + 8, PELE[p], CABELO[c], fn.cor, 0, true); } });
+    objs.push({ y: m.y + 16, desenhar: () => mesa(f.id, m, fn.cor, est, t) });
+  }
+  const am = MESAS.arquivos;
+  objs.push({ y: am.y + 5, desenhar: () => pessoa(am.x + am.w / 2, am.y + 8, PELE[2], CABELO[3], "#6B7C93", 0, true) });
+  objs.push({ y: am.y + 16, desenhar: () => mesa("arquivos", am, "#6B7C93", "livre", t) });
+  objs.push({ y: jog.y, desenhar: () => pessoa(jog.x, jog.y + ((!reduzMov && !jog.andando) ? Math.round(Math.sin(t * 3)) * 0 : 0), PELE[1], "#2B2118", "#F2B84B", jog.andando ? Math.floor(t * 8) % 2 : 0, false) });
+  objs.sort((a, b) => a.y - b.y).forEach((o) => o.desenhar());
+  if (S.editandoDeco && S.sel != null) { const d = S.decoracao[S.sel]; if (d) { const [w, h] = TIPOS[d.tipo]; cx.strokeStyle = "#F2B84B"; cx.lineWidth = 1; cx.setLineDash([3, 2]); cx.strokeRect(d.x - 1.5, d.y - 1.5, w + 3, h + 3); cx.setLineDash([]); } }
+}
+
+/* =====================================================================
+   Etiquetas (HTML, nítidas) e estados
+   ===================================================================== */
+function estadoDe(id) {
+  if (S.pensando.has(id)) return "trabalhando";
+  return (S.projeto && S.projeto.etapas[id] && S.projeto.etapas[id].estado) || "livre";
+}
+function montarEtiquetas() {
+  const box = $("#etiquetas"); box.replaceChildren();
+  const pos = (e, x, y) => { e.style.left = (x / L * 100) + "%"; e.style.top = (y / A * 100) + "%"; };
+  for (const s of SALAS) { const e = el("div", "etiqueta sala", s.rot); pos(e, s.x + 2, s.y - 13); e.style.transform = "none"; box.append(e); }
+  for (const f of S.funcionarios) {
+    const m = MESAS[f.id], fn = func(f.id);
+    const e = el("div", "etiqueta"); e.id = "tag-" + f.id; e.style.setProperty("--cor", fn.cor);
+    e.append(el("i"), el("span", "", fn.nome), el("em"));
+    pos(e, m.x + m.w / 2, m.y - 20); box.append(e);
+  }
+  const a = el("div", "etiqueta"); a.style.setProperty("--cor", "#6B7C93"); a.append(el("i"), el("span", "", "Arq")); pos(a, MESAS.arquivos.x + MESAS.arquivos.w / 2, MESAS.arquivos.y - 24); box.append(a);
+  const eu = el("div", "etiqueta"); eu.id = "tag-eu"; eu.style.setProperty("--cor", "#F2B84B"); eu.append(el("i"), el("span", "", "Você")); box.append(eu);
+  atualizarEtiquetas();
+}
+function atualizarEtiquetas() {
+  for (const f of S.funcionarios) {
+    const e = $("#tag-" + f.id); if (!e) continue;
+    const est = estadoDe(f.id), em = e.querySelector("em");
+    em.className = { trabalhando: "t", aguardando: "p", aprovada: "a" }[est] || "";
+    em.textContent = { trabalhando: "…", aguardando: "!", aprovada: "✓" }[est] || "";
+    e.querySelector("span").textContent = func(f.id).nome;
+    e.style.setProperty("--cor", func(f.id).cor);
+  }
+  const pips = $("#pips"); pips.replaceChildren();
+  for (const f of S.funcionarios) { const p = el("span", "pip" + (estadoDe(f.id) === "aprovada" ? " on" : "")); p.style.setProperty("--cor", func(f.id).cor); p.title = func(f.id).nome + ": " + (estadoDe(f.id) === "aprovada" ? "aprovado" : "pendente"); pips.append(p); }
+}
+
+/* =====================================================================
+   Movimento e colisão
+   ===================================================================== */
+function solidos() {
+  const r = FAIXAS.map((f) => ({ x: f.x, y: f.y, w: f.w, h: f.h }));
+  for (const d of S.decoracao) { const [w, h, s] = TIPOS[d.tipo]; if (s) r.push({ x: d.x, y: d.y + h * 0.4, w, h: h * 0.6 }); }
+  for (const m of Object.values(MESAS)) r.push({ x: m.x, y: m.y + 4, w: m.w, h: 12 });
+  r.push({ x: -10, y: -10, w: L + 20, h: 10 }, { x: -10, y: A, w: L + 20, h: 10 }, { x: -10, y: 0, w: 10, h: A }, { x: L, y: 0, w: 10, h: A });
+  return r;
+}
+function bate(px, py, lista) {
+  const a = { x: px - 4, y: py - 3, w: 8, h: 3 };
+  return lista.some((r) => a.x < r.x + r.w && a.x + a.w > r.x && a.y < r.y + r.h && a.y + a.h > r.y);
+}
+function mover(dt) {
+  if (S.editandoDeco || S.aberto && document.activeElement && /TEXTAREA|INPUT/.test(document.activeElement.tagName)) { jog.andando = false; return; }
+  let dx = (teclas.has("ArrowRight") || teclas.has("d") ? 1 : 0) - (teclas.has("ArrowLeft") || teclas.has("a") ? 1 : 0);
+  let dy = (teclas.has("ArrowDown") || teclas.has("s") ? 1 : 0) - (teclas.has("ArrowUp") || teclas.has("w") ? 1 : 0);
+  jog.andando = !!(dx || dy);
+  if (!jog.andando) return;
+  const n = Math.hypot(dx, dy), v = 76 * dt, lista = solidos();
+  const nx = jog.x + dx / n * v, ny = jog.y + dy / n * v;
+  if (!bate(nx, jog.y, lista)) jog.x = nx;
+  if (!bate(jog.x, ny, lista)) jog.y = ny;
+}
+function proximo() {
+  let melhor = null, d0 = 34;
+  const alvos = [...S.funcionarios.map((f) => ({ id: f.id, x: MESAS[f.id].x + MESAS[f.id].w / 2, y: MESAS[f.id].y + 22 })), { id: "arquivos", x: MESAS.arquivos.x + MESAS.arquivos.w / 2, y: MESAS.arquivos.y + 22 }];
+  for (const a of alvos) { const d = Math.hypot(a.x - jog.x, a.y - jog.y); if (d < d0) { d0 = d; melhor = a.id; } }
+  return melhor;
+}
+let ultimo = performance.now();
+function quadro(agora) {
+  const dt = Math.min(0.05, (agora - ultimo) / 1000); ultimo = agora;
+  mover(dt);
+  desenharMundo(agora / 1000);
+  const tag = $("#tag-eu"); if (tag) { tag.style.left = (jog.x / L * 100) + "%"; tag.style.top = ((jog.y - 24) / A * 100) + "%"; }
+  const perto = S.editandoDeco ? null : proximo();
+  const dica = $("#dica");
+  if (S.editandoDeco) dica.textContent = "Modo decorar: clique em um objeto e arraste. Use a barra abaixo para adicionar ou remover.";
+  else if (perto) dica.textContent = "Aperte E para falar com " + (perto === "arquivos" ? "o Arq (arquivos)" : func(perto).nome);
+  else dica.textContent = "Ande com as setas ou WASD. Clique em um funcionário, ou aperte E perto dele, para conversar.";
+  dica.style.display = S.aberto && innerWidth <= 900 ? "none" : "";
+  requestAnimationFrame(quadro);
+}
+addEventListener("keydown", (e) => {
+  if (/TEXTAREA|INPUT/.test(document.activeElement.tagName)) return;
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(k)) e.preventDefault();
+  teclas.add(k);
+  if (k === "e" && !S.editandoDeco) { const p = proximo(); if (p) abrirFuncionario(p); }
+  if (k === "Escape") fecharPainel();
+  if ((k === "Delete" || k === "Backspace") && S.editandoDeco && S.sel != null) removerSel();
+});
+addEventListener("keyup", (e) => teclas.delete(e.key.length === 1 ? e.key.toLowerCase() : e.key));
+addEventListener("blur", () => teclas.clear());
+
+/* clique e arrasto no mapa */
+function ponto(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * L, y: (e.clientY - r.top) / r.height * A }; }
+function achar(p) {
+  for (const f of S.funcionarios) { const m = MESAS[f.id]; if (p.x >= m.x - 4 && p.x <= m.x + m.w + 4 && p.y >= m.y - 28 && p.y <= m.y + 18) return f.id; }
+  const a = MESAS.arquivos; if (p.x >= a.x && p.x <= a.x + a.w && p.y >= a.y - 28 && p.y <= a.y + 18) return "arquivos";
+  for (const d of S.decoracao) if (d.tipo === "arquivo" && p.x >= d.x && p.x <= d.x + 16 && p.y >= d.y && p.y <= d.y + 26) return "arquivos";
+  return null;
+}
+function itemEm(p) {
+  for (let i = S.decoracao.length - 1; i >= 0; i--) { const d = S.decoracao[i], [w, h] = TIPOS[d.tipo]; if (p.x >= d.x && p.x <= d.x + w && p.y >= d.y && p.y <= d.y + h) return i; }
+  return null;
+}
+let arrasto = null;
+cv.addEventListener("pointerdown", (e) => {
+  const p = ponto(e);
+  if (S.editandoDeco) { S.sel = itemEm(p); if (S.sel != null) { arrasto = { dx: p.x - S.decoracao[S.sel].x, dy: p.y - S.decoracao[S.sel].y }; cv.setPointerCapture(e.pointerId); } return; }
+  const id = achar(p); if (id) abrirFuncionario(id);
+});
+cv.addEventListener("pointermove", (e) => {
+  const p = ponto(e);
+  if (arrasto && S.sel != null) { const d = S.decoracao[S.sel], [w, h] = TIPOS[d.tipo]; d.x = Math.max(0, Math.min(L - w, Math.round(p.x - arrasto.dx))); d.y = Math.max(0, Math.min(A - h, Math.round(p.y - arrasto.dy))); }
+  cv.style.cursor = S.editandoDeco ? (itemEm(p) != null ? "grab" : "default") : (achar(p) ? "pointer" : "default");
+});
+cv.addEventListener("pointerup", () => { arrasto = null; });
+
+/* modo decorar */
+function montarPaleta() {
+  const p = $("#paleta"); p.replaceChildren();
+  for (const t of Object.keys(TIPOS)) { const b = el("button", "", "+ " + NOMES_TIPO[t]); b.addEventListener("click", () => { S.decoracao.push({ tipo: t, x: 300, y: 200 }); S.sel = S.decoracao.length - 1; }); p.append(b); }
+  const r = el("button", "perigo", "Remover"); r.addEventListener("click", removerSel);
+  const pd = el("button", "", "Voltar ao padrão"); pd.addEventListener("click", () => { S.decoracao = DECORACAO_PADRAO.map((d) => ({ ...d })); S.sel = null; });
+  const sv = el("button", "ok", "Salvar"); sv.addEventListener("click", salvarDeco);
+  p.append(r, pd, sv);
+}
+function removerSel() { if (S.sel != null) { S.decoracao.splice(S.sel, 1); S.sel = null; } }
+async function salvarDeco() {
+  try { S.personal = await api("POST", "/api/escritorio", { decoracao: S.decoracao, funcionarios: S.personal.funcionarios }); $("#btn-decorar").click(); }
+  catch (e) { alert(e.message); }
+}
+$("#btn-decorar").addEventListener("click", () => {
+  S.editandoDeco = !S.editandoDeco; S.sel = null;
+  $("#btn-decorar").setAttribute("aria-pressed", String(S.editandoDeco)); $("#btn-decorar").textContent = S.editandoDeco ? "Sair do modo decorar" : "Decorar";
+  $("#paleta").classList.toggle("on", S.editandoDeco);
+  if (S.editandoDeco) fecharPainel(); else S.decoracao = (S.personal.decoracao || DECORACAO_PADRAO).map((d) => ({ ...d }));
+});
+
+/* =====================================================================
+   Texto: Markdown simples, sem HTML perigoso
+   ===================================================================== */
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function inline(s) {
+  return esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\[(CONFERIR[^\]]*|pausa|ênfase|ritmo[^\]]*)\]/gi, "<mark>[$1]</mark>");
+}
+function md(texto) {
+  const out = [], linhas = texto.replace(/\r/g, "").split("\n"); let i = 0;
+  while (i < linhas.length) {
+    const l = linhas[i];
+    if (!l.trim()) { i++; continue; }
+    if (l.startsWith(">")) { const b = []; while (i < linhas.length && linhas[i].startsWith(">")) b.push(linhas[i++].replace(/^>\s?/, "")); out.push("<blockquote>" + b.map(inline).join("<br>") + "</blockquote>"); continue; }
+    if (/^\s*\|/.test(l)) {
+      const b = []; while (i < linhas.length && /^\s*\|/.test(linhas[i])) b.push(linhas[i++]);
+      const cel = (x) => x.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+      const corpo = b.filter((x) => !/^\s*\|?[\s:-]+\|[\s|:-]*$/.test(x));
+      out.push("<table>" + corpo.map((x, k) => "<tr>" + cel(x).map((c) => `<${k ? "td" : "th"}>${inline(c)}</${k ? "td" : "th"}>`).join("") + "</tr>").join("") + "</table>"); continue;
+    }
+    if (/^\s*([-*]|\d+\.)\s/.test(l)) {
+      const itens = [], ehItem = (x) => /^\s*([-*]|\d+\.)\s/.test(x);
+      while (i < linhas.length) {
+        const x = linhas[i];
+        if (!x.trim()) { let j = i; while (j < linhas.length && !linhas[j].trim()) j++; if (j < linhas.length && ehItem(linhas[j])) { i = j; continue; } break; }
+        const m = x.match(/^(\s*)([-*]|\d+\.)\s+(.*)$/);
+        if (m) { if (m[1].length >= 2 && itens.length) itens[itens.length - 1].filhos.push(m[3]); else itens.push({ ord: /\d/.test(m[2]), texto: m[3], filhos: [] }); }
+        else if (/^\s{2,}\S/.test(x) && itens.length) itens[itens.length - 1].texto += " " + x.trim();
+        else break;
+        i++;
+      }
+      const tag = itens[0].ord ? "ol" : "ul";
+      out.push(`<${tag}>` + itens.map((it) => "<li>" + inline(it.texto) + (it.filhos.length ? "<ul>" + it.filhos.map((f) => "<li>" + inline(f) + "</li>").join("") + "</ul>" : "") + "</li>").join("") + `</${tag}>`); continue;
+    }
+    const b = []; while (i < linhas.length && linhas[i].trim() && !/^\s*(\||>|([-*]|\d+\.)\s)/.test(linhas[i])) b.push(inline(linhas[i++]));
+    out.push("<p>" + b.join("<br>") + "</p>");
+  }
+  return out.join("");
+}
+
+/* =====================================================================
+   Painel de conversa com o funcionário
+   ===================================================================== */
+const SUGESTOES = {
+  ideias: ["Mais ideias", "Mais engraçadas", "Para iniciantes"], roteiro: ["Mais curto", "Tom mais animado", "Abertura mais forte"],
+  titulo: ["Títulos mais curtos", "Menos exagero", "Descrição mais direta"], voz: ["Ritmo mais calmo", "Mais pausas"], editor: ["Cortes mais rápidos", "Mais legendas"],
+  thumb: ["Mais chamativa", "Texto menor"], shorts: ["Mais trechos", "Mais curtos"],
+};
+function fecharPainel() { S.aberto = null; $("#painel").classList.remove("aberto"); }
+function abrirFuncionario(id) {
+  if (!S.projeto) { abrirProjetos("Crie ou escolha um projeto para os funcionários começarem a trabalhar."); return; }
+  S.aberto = id; $("#painel").classList.add("aberto");
+  if (id === "arquivos") renderArquivos(); else if (id === "publicar") renderPublicar(); else renderConversa(id);
+}
+function topoPainel(id, titulo, subtitulo, cor, personalizavel) {
+  const t = el("div", "p-topo"); t.style.setProperty("--cor-fraca", cor + "33");
+  const c = el("canvas"); c.width = 22; c.height = 28; const g = c.getContext("2d"); g.imageSmoothingEnabled = false;
+  const [p, ca] = APARENCIA[id] || [2, 3];
+  g.fillStyle = PELE[p]; g.fillRect(7, 8, 8, 8); g.fillStyle = CABELO[ca]; g.fillRect(6, 6, 10, 4); g.fillRect(6, 8, 1, 4); g.fillRect(15, 8, 1, 4);
+  g.fillStyle = TINTA; g.fillRect(9, 11, 1, 2); g.fillRect(12, 11, 1, 2); g.fillStyle = cor; g.fillRect(5, 17, 12, 9);
+  const g2 = el("div", "grow"); g2.append(el("h2", "", titulo), el("p", "", subtitulo));
+  const x = el("button", "icone", "×"); x.setAttribute("aria-label", "Fechar"); x.addEventListener("click", fecharPainel);
+  t.append(c, g2);
+  if (personalizavel) { const b = el("button", "icone", "✎"); b.title = "Mudar nome e cor"; b.setAttribute("aria-label", "Mudar nome e cor"); b.addEventListener("click", () => { const q = $("#personalizar"); q.hidden = !q.hidden; }); t.append(b); }
+  t.append(x); return t;
+}
+function personalizar(id) {
+  const fn = func(id), box = el("div", "personalizar"); box.id = "personalizar"; box.hidden = true;
+  const nome = el("input"); nome.type = "text"; nome.maxLength = 20; nome.value = fn.nome; nome.setAttribute("aria-label", "Nome do funcionário");
+  const cor = el("input"); cor.type = "color"; cor.value = fn.cor; cor.setAttribute("aria-label", "Cor do funcionário");
+  const ok = el("button", "b escuro", "Salvar");
+  ok.addEventListener("click", async () => {
+    try { S.personal = await api("POST", "/api/escritorio", { decoracao: S.personal.decoracao, funcionarios: { ...S.personal.funcionarios, [id]: { nome: nome.value, cor: cor.value } } }); atualizarEtiquetas(); renderConversa(id); }
+    catch (e) { alert(e.message); }
+  });
+  box.append(nome, cor, ok); return box;
+}
+function renderConversa(id) {
+  const fn = func(id), dados = S.projeto.etapas[id], p = $("#painel"); p.replaceChildren(); p.style.setProperty("--cor", fn.cor);
+  p.append(topoPainel(id, fn.nome, fn.cargo, fn.cor, true), personalizar(id));
+  const conv = el("div", "conversa"); conv.id = "conversa";
+  const intro = el("div", "msg-func"); intro.style.setProperty("--cor", fn.cor);
+  intro.append(el("div", "md")); intro.lastChild.innerHTML = md(`Oi! Eu sou ${fn.nome}, ${fn.cargo.toLowerCase()}. ${S.porId[id].descricao}\n\nMe dê uma ordem aí embaixo. Se não gostar, peça um ajuste e eu refaço.`);
+  conv.append(intro);
+  for (const v of dados.versoes) {
+    conv.append(el("div", "msg-eu", v.instrucoes || "(sem instruções específicas)"));
+    conv.append(cartaoVersao(id, v, dados.aprovada === v.n, fn));
+  }
+  if (S.pensando.has(id)) { const d = el("div", "digitando"); d.style.setProperty("--cor", fn.cor); d.append(el("span"), el("span"), el("span")); conv.append(d); }
+  if (S.erros[id]) conv.append(el("div", "erro", S.erros[id]));
+  p.append(conv);
+  const envio = el("div", "envio"), sug = el("div", "sugestoes");
+  for (const s of SUGESTOES[id] || []) { const b = el("button", "", s); b.addEventListener("click", () => enviar(id, s)); sug.append(b); }
+  const linha = el("div", "linha-envio"), ta = el("textarea"); ta.placeholder = S.porId[id].dica || "Dê uma ordem"; ta.rows = 2; ta.setAttribute("aria-label", "Ordem para " + fn.nome);
+  const bt = el("button", "b escuro", dados.versoes.length ? "Pedir ajuste" : "Enviar ordem");
+  const mandar = () => { const t = ta.value; ta.value = ""; enviar(id, t); };
+  bt.addEventListener("click", mandar); ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); mandar(); } });
+  bt.disabled = S.pensando.has(id); linha.append(ta, bt); envio.append(sug, linha); p.append(envio);
+  conv.scrollTop = conv.scrollHeight;
+  if (!S.pensando.has(id)) setTimeout(() => ta.focus({ preventScroll: true }), 0);
+}
+function cartaoVersao(id, v, aprovada, fn) {
+  const c = el("div", "msg-func" + (aprovada ? " aprovada" : "")); c.style.setProperty("--cor", fn.cor);
+  const cab = el("div", "msg-cab"); cab.append(el("strong", "", "Versão " + v.n));
+  if (aprovada) cab.append(el("span", "selo ok", "Aprovada"));
+  if (v.modo === "exemplo") cab.append(el("span", "selo ex", "Exemplo"));
+  if (v.modo === "manual") cab.append(el("span", "selo man", "Editada por você"));
+  c.append(cab); const corpo = el("div", "md"); corpo.innerHTML = md(v.texto); c.append(corpo);
+  const ac = el("div", "acoes");
+  const ap = el("button", "b " + (aprovada ? "" : "forte"), aprovada ? "Tirar aprovação" : "Aprovar");
+  ap.addEventListener("click", async () => { try { await api("POST", `/api/projetos/${S.projeto.id}/etapas/${id}/${aprovada ? "desaprovar" : "aprovar"}`, { versao: v.n }); await recarregar(); } catch (e) { alert(e.message); } });
+  const ed = el("button", "b", "Editar");
+  ed.addEventListener("click", () => {
+    c.replaceChildren(); const ta = el("textarea", "edit"); ta.value = v.texto; ta.setAttribute("aria-label", "Texto da versão " + v.n);
+    const a2 = el("div", "acoes"), sv = el("button", "b escuro", "Salvar como nova versão"), ca = el("button", "b", "Cancelar");
+    sv.addEventListener("click", async () => { try { await api("POST", `/api/projetos/${S.projeto.id}/etapas/${id}/editar`, { texto: ta.value }); await recarregar(); } catch (e) { alert(e.message); } });
+    ca.addEventListener("click", () => renderConversa(id)); a2.append(sv, ca); c.append(ta, a2); ta.focus();
+  });
+  const cp = el("button", "b", "Copiar"); cp.addEventListener("click", async () => { try { await navigator.clipboard.writeText(v.texto); cp.textContent = "Copiado"; setTimeout(() => (cp.textContent = "Copiar"), 1200); } catch { cp.textContent = "Selecione e copie"; } });
+  ac.append(ap, ed, cp); c.append(ac); return c;
+}
+async function enviar(id, texto) {
+  if (S.pensando.has(id)) return;
+  S.pensando.add(id); delete S.erros[id]; atualizarEtiquetas();
+  if (S.aberto === id) renderConversa(id);
+  try { await api("POST", `/api/projetos/${S.projeto.id}/etapas/${id}/trabalhar`, { instrucoes: texto }); }
+  catch (e) { S.erros[id] = e.message; }
+  S.pensando.delete(id); await recarregar();
+}
+async function recarregar() {
+  if (!S.projeto) return;
+  S.projeto = await api("GET", "/api/projetos/" + S.projeto.id); atualizarEtiquetas();
+  if (S.aberto === "arquivos") renderArquivos(); else if (S.aberto === "publicar") renderPublicar(); else if (S.aberto) renderConversa(S.aberto);
+}
+
+/* arquivos */
+const PASTAS = [["roteiro", "Roteiro"], ["audio", "Áudio (sua gravação)"], ["video", "Vídeo e gameplay"], ["thumbs", "Miniaturas"], ["shorts", "Shorts"], ["entrega", "Entrega"]];
+const tamanho = (b) => b > 1e9 ? (b / 1e9).toFixed(1) + " GB" : b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1e3)) + " KB";
+function renderArquivos() {
+  const p = $("#painel"); p.replaceChildren(); p.style.setProperty("--cor", "#6B7C93");
+  p.append(topoPainel("arquivos", "Arq", "Arquivos do projeto", "#6B7C93", false));
+  const conv = el("div", "conversa");
+  conv.append(el("div", "md")); conv.lastChild.innerHTML = md("Cada projeto tem as suas pastas. Arraste arquivos para a pasta certa. Os arquivos ficam no seu computador.");
+  for (const [pasta, nome] of PASTAS) {
+    const sec = el("div", "pasta"), h = el("h3", "", nome); sec.append(h);
+    const zona = el("div", "zona");
+    const lista = S.projeto.arquivos[pasta] || [];
+    if (!lista.length) zona.append(el("span", "", "Solte arquivos aqui ou "));
+    for (const a of lista) {
+      const linha = el("div", "arq"), link = el("a", "", a.nome); link.href = `/api/projetos/${S.projeto.id}/arquivos/${pasta}/${encodeURIComponent(a.nome)}`; link.target = "_blank"; link.rel = "noopener";
+      const del = el("button", "icone", "×"); del.setAttribute("aria-label", "Apagar " + a.nome);
+      del.addEventListener("click", async () => { if (confirm("Apagar " + a.nome + "?")) { await api("DELETE", `/api/projetos/${S.projeto.id}/arquivos/${pasta}/${encodeURIComponent(a.nome)}`); await recarregar(); } });
+      linha.append(link, el("small", "", tamanho(a.tamanho)), del); zona.append(linha);
+    }
+    const input = el("input"); input.type = "file"; input.multiple = true; input.hidden = true;
+    const bt = el("button", "b", lista.length ? "Adicionar arquivo" : "escolher no computador"); bt.addEventListener("click", () => input.click());
+    zona.append(bt, input); sec.append(zona);
+    const subir = async (files) => { for (const f of files) { bt.textContent = "Enviando " + f.name + "…"; bt.disabled = true;
+      const r = await fetch(`/api/projetos/${S.projeto.id}/arquivos/${pasta}/${encodeURIComponent(f.name)}`, { method: "PUT", headers: { "X-VidOffice": "1" }, body: f });
+      if (!r.ok) alert((await r.json().catch(() => ({}))).erro || "Não consegui enviar " + f.name); } await recarregar(); };
+    input.addEventListener("change", () => subir([...input.files]));
+    zona.addEventListener("dragover", (e) => { e.preventDefault(); zona.classList.add("arrasta"); }); zona.addEventListener("dragleave", () => zona.classList.remove("arrasta"));
+    zona.addEventListener("drop", (e) => { e.preventDefault(); zona.classList.remove("arrasta"); subir([...e.dataTransfer.files]); });
+    conv.append(sec);
+  }
+  p.append(conv);
+}
+
+/* publicação */
+function renderPublicar() {
+  const fn = func("publicar"), p = $("#painel"); p.replaceChildren(); p.style.setProperty("--cor", fn.cor);
+  p.append(topoPainel("publicar", fn.nome, fn.cargo, fn.cor, true), personalizar("publicar"));
+  const conv = el("div", "conversa");
+  const c = el("div", "msg-func"); c.style.setProperty("--cor", fn.cor);
+  const intro = el("div", "md"); intro.innerHTML = md("Eu junto tudo que você aprovou em um pacote pronto para postar. Veja o que ainda falta:"); c.append(intro);
+  const ul = el("ul", "lista-ok"); ul.style.marginTop = "10px";
+  for (const f of S.funcionarios) { if (f.id === "publicar") continue; const ok = estadoDe(f.id) === "aprovada"; const li = el("li"); const cx2 = el("span", "caixa" + (ok ? " on" : ""), ok ? "✓" : ""); li.append(cx2, el("span", "", `${func(f.id).nome}: ${func(f.id).cargo}`)); ul.append(li); }
+  c.append(ul);
+  const ac = el("div", "acoes"), gerar = el("button", "b escuro", "Gerar pacote");
+  const saida = el("div", "md"); saida.style.marginTop = "12px";
+  gerar.addEventListener("click", async () => {
+    try { const r = await api("POST", `/api/projetos/${S.projeto.id}/pacote`, {}); saida.innerHTML = md(r.texto); await recarregarSemPainel(); const cp = el("button", "b", "Copiar pacote"); cp.addEventListener("click", () => navigator.clipboard.writeText(r.texto)); ac.append(cp); gerar.textContent = "Gerar de novo"; }
+    catch (e) { alert(e.message); }
+  });
+  const studio = el("a", "b", "Abrir YouTube Studio"); studio.href = "https://studio.youtube.com"; studio.target = "_blank"; studio.rel = "noopener"; studio.style.textDecoration = "none"; studio.style.display = "inline-block";
+  ac.append(gerar, studio); c.append(ac, saida); conv.append(c); p.append(conv);
+}
+async function recarregarSemPainel() { S.projeto = await api("GET", "/api/projetos/" + S.projeto.id); atualizarEtiquetas(); }
+
+/* =====================================================================
+   Projetos e configurações
+   ===================================================================== */
+function abrirProjetos(nota) {
+  const ul = $("#lista-projetos"); ul.replaceChildren();
+  if (!S.projetos.length) ul.append(el("li", "vazio", nota || "Nenhum projeto ainda. Crie o primeiro abaixo."));
+  for (const p of S.projetos) {
+    const li = el("li"), b = el("button", S.projeto && S.projeto.id === p.id ? "atual" : ""); b.append(el("strong", "", p.titulo), el("small", "", `${p.aprovadas} de ${S.funcionarios.length} etapas aprovadas`));
+    b.addEventListener("click", () => { selecionar(p.id); $("#j-projetos").classList.remove("aberto"); }); li.append(b); ul.append(li);
+  }
+  $("#j-projetos").classList.add("aberto"); setTimeout(() => $("#np-titulo").focus(), 0);
+}
+async function selecionar(id) {
+  S.projeto = await api("GET", "/api/projetos/" + id); S.erros = {}; localStorage.setItem("vidoffice:projeto", id);
+  $("#nome-projeto").textContent = S.projeto.titulo; atualizarEtiquetas();
+  if (S.aberto) abrirFuncionario(S.aberto);
+}
+$("#btn-projeto").addEventListener("click", () => abrirProjetos());
+$("#np-fechar").addEventListener("click", () => $("#j-projetos").classList.remove("aberto"));
+$("#np-criar").addEventListener("click", async () => {
+  try { const p = await api("POST", "/api/projetos", { titulo: $("#np-titulo").value, tema: $("#np-tema").value }); S.projetos = await api("GET", "/api/projetos"); $("#np-titulo").value = ""; $("#np-tema").value = ""; await selecionar(p.id); $("#j-projetos").classList.remove("aberto"); abrirFuncionario("ideias"); }
+  catch (e) { alert(e.message); }
+});
+$("#np-titulo").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#np-criar").click(); });
+
+function mostrarModo() { const m = $("#modo"); m.textContent = S.config.tem_chave ? "IA ativa" : "Modo exemplo"; m.className = "modo" + (S.config.tem_chave ? " ia" : ""); }
+$("#btn-config").addEventListener("click", () => {
+  $("#cfg-modelo").value = S.config.modelo; $("#cfg-chave").value = "";
+  $("#cfg-chave-nota").textContent = S.config.tem_chave ? "Chave salva (" + S.config.chave_final + "). Deixe em branco para manter." : "Nenhuma chave salva: os funcionários respondem em modo exemplo.";
+  $("#j-config").classList.add("aberto"); $("#cfg-chave").focus();
+});
+$("#cfg-fechar").addEventListener("click", () => $("#j-config").classList.remove("aberto"));
+$("#cfg-salvar").addEventListener("click", async () => { try { S.config = await api("POST", "/api/config", { api_key: $("#cfg-chave").value, modelo: $("#cfg-modelo").value }); mostrarModo(); $("#j-config").classList.remove("aberto"); } catch (e) { alert(e.message); } });
+$("#cfg-remover").addEventListener("click", async () => { S.config = await api("POST", "/api/config", { remover_chave: true }); mostrarModo(); $("#j-config").classList.remove("aberto"); });
+document.querySelectorAll(".fundo").forEach((f) => f.addEventListener("click", (e) => { if (e.target === f) f.classList.remove("aberto"); }));
+
+/* =====================================================================
+   Início
+   ===================================================================== */
+async function iniciar() {
+  const [estado, pers, projetos] = await Promise.all([api("GET", "/api/estado"), api("GET", "/api/escritorio"), api("GET", "/api/projetos")]);
+  S.funcionarios = estado.funcionarios; S.porId = Object.fromEntries(S.funcionarios.map((f) => [f.id, f])); S.config = estado.config; S.personal = pers; S.projetos = projetos;
+  S.decoracao = (pers.decoracao || DECORACAO_PADRAO).map((d) => ({ ...d }));
+  mostrarModo(); montarPaleta(); montarEtiquetas();
+  const salvo = localStorage.getItem("vidoffice:projeto");
+  const alvo = projetos.find((p) => p.id === salvo) || projetos[0];
+  if (alvo) await selecionar(alvo.id); else abrirProjetos();
+  requestAnimationFrame(quadro);
+}
+iniciar().catch((e) => { document.body.prepend(el("div", "erro", "Não consegui carregar o escritório: " + e.message)); });
+window.__vidoffice = { S, jog, abrirFuncionario };
+</script>
+</body>
+</html>
