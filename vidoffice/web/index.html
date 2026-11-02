@@ -156,7 +156,7 @@
 <main>
   <div id="palco">
     <div id="mundo">
-      <canvas id="mapa" width="640" height="400"></canvas>
+      <canvas id="mapa" width="1280" height="800"></canvas>
       <div id="etiquetas"></div>
     </div>
     <div id="dica">Ande com as setas ou WASD. Clique em um funcionário, ou aperte E perto dele, para conversar.</div>
@@ -194,11 +194,11 @@
    ===================================================================== */
 const L = 640, A = 400;
 const SALAS = [
-  { id: "criacao",  rot: "Criação",           x: 16,  y: 16,  w: 288, h: 176, pisos: ["#C8D2F3", "#BFCBEF"], portas: [["b", 124, 164], ["r", 96, 132]] },
-  { id: "producao", rot: "Produção",          x: 336, y: 16,  w: 288, h: 176, pisos: ["#BFE5D6", "#B5DECE"], portas: [["b", 468, 508], ["l", 96, 132]] },
-  { id: "arquivos", rot: "Arquivos",          x: 16,  y: 224, w: 208, h: 160, pisos: ["#CDD3DE", "#C4CBD8"], portas: [["t", 84, 124]] },
-  { id: "lounge",   rot: "Sala de descanso",  x: 240, y: 224, w: 160, h: 160, pisos: ["#F2D3DA", "#EBC9D2"], portas: [["t", 288, 352]] },
-  { id: "entrega",  rot: "Entrega",           x: 416, y: 224, w: 208, h: 160, pisos: ["#F7D9B8", "#F1CFAA"], portas: [["t", 496, 536]] },
+  { id: "criacao",  rot: "Criação",          x: 16,  y: 16,  w: 288, h: 176, piso: "madeira",  cores: ["#DDBD92", "#D3B287", "#CAA87B"], parede: "#8B84B8", janelas: [88, 196],  portas: [["b", 124, 164], ["r", 96, 132]] },
+  { id: "producao", rot: "Produção",         x: 336, y: 16,  w: 288, h: 176, piso: "carpete",  cores: ["#A7BDD2", "#98AFC6", "#B7CBDC"], parede: "#6E7FA8", janelas: [404, 516], portas: [["b", 468, 508], ["l", 96, 132]] },
+  { id: "arquivos", rot: "Arquivos",         x: 16,  y: 224, w: 208, h: 160, piso: "concreto", cores: ["#BCC2CD", "#B2B9C5", "#A2A9B6"], parede: "#7A7F9A", janelas: [38, 164],  portas: [["t", 84, 124]] },
+  { id: "lounge",   rot: "Sala de descanso", x: 240, y: 224, w: 160, h: 160, piso: "carpete",  cores: ["#D8C0DA", "#CDB2D1", "#E3CFE4"], parede: "#9A78A8", janelas: [250, 362], portas: [["t", 288, 352]] },
+  { id: "entrega",  rot: "Entrega",          x: 416, y: 224, w: 208, h: 160, piso: "madeira",  cores: ["#EDCFA2", "#E4C396", "#DBB88B"], parede: "#B58A6A", janelas: [440, 560], portas: [["t", 496, 536]] },
 ];
 const MESAS = {   // posição da mesa (canto superior esquerdo) e largura
   ideias:   { x: 40,  y: 72,  w: 48, tela: 1 }, roteiro: { x: 128, y: 72, w: 48, tela: 1 }, titulo: { x: 216, y: 72, w: 48, tela: 1 },
@@ -208,23 +208,33 @@ const MESAS = {   // posição da mesa (canto superior esquerdo) e largura
 };
 const PELE = ["#F2C9A5", "#D9A27A", "#A56C45", "#7A4A2B", "#F6D7BD", "#C58B62", "#8D5A38", "#E8B994"];
 const CABELO = ["#2B2118", "#5A3A22", "#B5782E", "#1E1A2B", "#8A3B2A", "#D8B45A", "#3B2A4A", "#4A4A4A"];
-const APARENCIA = { ideias: [0, 3], roteiro: [1, 0], titulo: [2, 1], voz: [4, 4], editor: [3, 2], thumb: [5, 6], shorts: [6, 7], publicar: [7, 5], arquivos: [2, 3] };
+const APARENCIA = {   // pele, cabelo, estilo (0 curto, 1 comprido, 2 boné)
+  ideias: [0, 3, 1], roteiro: [1, 0, 0], titulo: [2, 1, 2], voz: [4, 4, 1], editor: [3, 2, 0], thumb: [5, 6, 1], shorts: [6, 7, 2], publicar: [7, 5, 0], arquivos: [2, 3, 0],
+};
 const TIPOS = {  // [largura, altura, sólido]
   planta: [14, 20, 1], planta_grande: [18, 28, 1], sofa: [48, 20, 1], mesa_centro: [28, 14, 1], tapete: [64, 38, 0],
   estante: [40, 22, 0], quadro_branco: [36, 20, 0], mesa: [36, 16, 1], pufe: [14, 12, 1], cafe: [16, 22, 1],
   impressora: [20, 14, 1], arquivo: [16, 26, 1],
+  bebedouro: [10, 24, 1], luminaria: [10, 26, 1], poltrona: [18, 18, 1], maquina: [20, 28, 1], tapete_redondo: [40, 28, 0], caixas: [18, 14, 1],
 };
+const TAPETES = new Set(["tapete", "tapete_redondo"]);
 const NOMES_TIPO = { planta: "Planta", planta_grande: "Planta grande", sofa: "Sofá", mesa_centro: "Mesa de centro", tapete: "Tapete", estante: "Estante",
-  quadro_branco: "Quadro", mesa: "Mesa", pufe: "Pufe", cafe: "Café", impressora: "Impressora", arquivo: "Arquivo" };
+  quadro_branco: "Quadro", mesa: "Mesa", pufe: "Pufe", cafe: "Café", impressora: "Impressora", arquivo: "Arquivo",
+  bebedouro: "Bebedouro", luminaria: "Luminária", poltrona: "Poltrona", maquina: "Máquina", tapete_redondo: "Tapete redondo", caixas: "Caixas" };
 const DECORACAO_PADRAO = [
-  ["estante", 32, 20], ["quadro_branco", 140, 20], ["estante", 232, 20], ["planta", 28, 168], ["planta", 276, 168],
-  ["tapete", 120, 134], ["pufe", 134, 148], ["pufe", 176, 148],
-  ["estante", 352, 20], ["quadro_branco", 452, 20], ["estante", 548, 20], ["planta", 346, 168], ["planta", 598, 168],
-  ["tapete", 440, 140], ["cafe", 586, 120],
+  // Criação
+  ["estante", 32, 20], ["quadro_branco", 140, 20], ["estante", 232, 20], ["planta", 24, 164], ["planta", 272, 164],
+  ["tapete", 120, 134], ["pufe", 128, 146], ["pufe", 166, 146], ["poltrona", 40, 136], ["luminaria", 64, 140], ["bebedouro", 282, 126],
+  // Produção
+  ["estante", 352, 20], ["quadro_branco", 452, 20], ["estante", 548, 20], ["planta", 346, 164], ["planta", 598, 164],
+  ["tapete_redondo", 438, 148], ["cafe", 596, 118], ["bebedouro", 574, 122], ["caixas", 352, 148],
+  // Arquivos
   ["arquivo", 28, 236], ["arquivo", 48, 236], ["arquivo", 68, 236], ["arquivo", 148, 236], ["arquivo", 168, 236], ["arquivo", 188, 236],
-  ["planta", 30, 356], ["planta_grande", 192, 346],
-  ["sofa", 280, 240], ["tapete", 268, 290], ["mesa_centro", 290, 300], ["planta", 252, 358], ["planta_grande", 374, 346],
-  ["estante", 430, 238], ["impressora", 560, 252], ["planta", 438, 356], ["planta", 594, 356],
+  ["planta", 30, 356], ["planta_grande", 192, 346], ["caixas", 160, 310],
+  // Descanso
+  ["sofa", 246, 244], ["tapete_redondo", 276, 300], ["mesa_centro", 282, 308], ["poltrona", 328, 300], ["planta", 252, 358], ["planta_grande", 372, 348], ["maquina", 372, 236],
+  // Entrega
+  ["estante", 430, 238], ["impressora", 560, 252], ["planta", 438, 356], ["planta", 594, 356], ["caixas", 572, 320],
 ].map(([tipo, x, y]) => ({ tipo, x, y }));
 
 /* =====================================================================
@@ -232,7 +242,7 @@ const DECORACAO_PADRAO = [
    ===================================================================== */
 const S = { funcionarios: [], porId: {}, config: null, projetos: [], projeto: null, personal: { decoracao: null, funcionarios: {} },
             decoracao: [], aberto: null, editandoDeco: false, sel: null, erros: {}, pensando: new Set() };
-const jog = { x: 320, y: 352, vx: 0, vy: 0, passo: 0, andando: false };
+const jog = { x: 320, y: 352, dir: "u", f: 0, tempo: 0, andando: false };
 const teclas = new Set();
 const $ = (s) => document.querySelector(s);
 const reduzMov = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -247,109 +257,325 @@ async function api(metodo, caminho, corpo) {
 const func = (id) => { const f = S.porId[id], o = S.personal.funcionarios[id] || {}; return { ...f, nome: o.nome || f.nome, cor: o.cor || f.cor }; };
 
 /* =====================================================================
-   Desenho do mapa
+   Desenho do mapa (resolução 2x; tudo é feito com retângulos, para ficar nítido)
    ===================================================================== */
-const cv = $("#mapa"), cx = cv.getContext("2d");
-const R = (x, y, w, h, cor) => { cx.fillStyle = cor; cx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
-const TINTA = "#2B2740", PAREDE = "#6A6490", PAREDE_FACE = "#8A84B3";
-
-function sombra(x, y, w) { cx.globalAlpha = .18; R(x - w / 2, y - 1, w, 3, "#000"); cx.globalAlpha = 1; }
-
-function pessoa(x, y, pele, cabelo, camisa, passo, sentado) {
-  sombra(x, y, 12);
-  const m = passo ? 1 : 0;
-  if (!sentado) { R(x - 4, y - 5, 3, 5 - m, "#2D2A45"); R(x + 1, y - 5, 3, 4 + m, "#2D2A45"); }
-  R(x - 5, y - 13, 10, 9, camisa);
-  R(x - 6, y - 12, 1, 6, camisa); R(x + 5, y - 12, 1, 6, camisa);
-  cx.globalAlpha = .18; R(x - 5, y - 6, 10, 2, "#000"); cx.globalAlpha = 1;
-  R(x - 4, y - 20, 8, 8, pele);
-  R(x - 5, y - 22, 10, 4, cabelo); R(x - 5, y - 20, 1, 4, cabelo); R(x + 4, y - 20, 1, 4, cabelo);
-  R(x - 2, y - 17, 1, 2, TINTA); R(x + 1, y - 17, 1, 2, TINTA);
+const cv = $("#mapa"); let cx = cv.getContext("2d");
+cv.width = L * 2; cv.height = A * 2;
+const q = (v) => Math.round(v * 2) / 2;
+const R = (x, y, w, h, cor) => { cx.fillStyle = cor; const x0 = q(x), y0 = q(y); cx.fillRect(x0, y0, Math.max(.5, q(x + w) - x0), Math.max(.5, q(y + h) - y0)); };
+const alfa = (a, f) => { cx.globalAlpha = a; f(); cx.globalAlpha = 1; };
+const TINTA = "#2B2740";
+function tom(hex, k) {
+  const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = (n >> 8) & 255, b = n & 255; const alvo = k > 0 ? 255 : 0, a = Math.abs(k);
+  r = Math.round(r + (alvo - r) * a); g = Math.round(g + (alvo - g) * a); b = Math.round(b + (alvo - b) * a);
+  return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
 }
+const ruido = (a, b) => { let h = (Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; };
 
-function mesa(id, m, cor, estado, t) {
-  const { x, y, w } = m;
-  R(x, y + 4, w, 12, "#B98B5E"); R(x, y + 4, w, 2, "#D2A777"); R(x, y + 14, w, 2, "#8E6540");
-  if (m.tela) {
-    const telas = m.tela, tw = m.vertical ? 8 : 14, th = m.vertical ? 14 : 10;
-    for (let i = 0; i < telas; i++) {
-      const tx = x + (w - telas * (tw + 2)) / 2 + i * (tw + 2) + 1, ty = y - th + 6;
-      R(tx - 1, ty - 1, tw + 2, th + 2, "#1E1B30");
-      R(tx, ty, tw, th, estado === "trabalhando" ? "#D8F3FF" : cor);
-      if (estado === "trabalhando") for (let k = 0; k < 3; k++) R(tx + 1, ty + 1 + k * 3, 3 + ((t * 6 + k * 3) % (tw - 4)), 1, "#2B2740");
-      else { cx.globalAlpha = .45; R(tx + 1, ty + 1, tw - 2, 2, "#fff"); cx.globalAlpha = 1; }
+/* ---------- pisos, paredes, janelas (desenhados uma vez só) ---------- */
+function pisoSala(s) {
+  cx.save(); cx.beginPath(); cx.rect(s.x, s.y, s.w, s.h); cx.clip();
+  const [c1, c2, c3] = s.cores, x1 = s.x + s.w, y1 = s.y + s.h;
+  if (s.piso === "madeira") {
+    R(s.x, s.y, s.w, s.h, c2);
+    for (let r = 0, y = s.y; y < y1; y += 4, r++) {
+      let x = s.x - ((r * 11) % 26);
+      for (let k = 0; x < x1; x += 26, k++) {
+        const n = ruido(r * 7 + k, s.x), cor = n < .34 ? c1 : n < .67 ? c2 : c3;
+        R(x, y, 26, 4, cor); R(x, y, 26, .5, tom(cor, .14)); R(x, y + 3.5, 26, .5, tom(cor, -.22)); R(x + 25.5, y, .5, 4, tom(cor, -.28));
+        if (n > .78) R(x + 4 + n * 10, y + 1.5, 6, .5, tom(cor, -.1));
+      }
     }
-    R(x + w / 2 - 6, y + 9, 12, 3, "#EDE6D6");
+  } else if (s.piso === "carpete") {
+    R(s.x, s.y, s.w, s.h, c1);
+    for (let y = s.y; y < y1; y += 1) for (let x = s.x; x < x1; x += 1) { const n = ruido(x, y); if (n > .72) R(x, y, .5, .5, c3); else if (n < .1) R(x + .5, y + .5, .5, .5, c2); }
+    R(s.x, s.y, s.w, .5, c2); R(s.x, y1 - .5, s.w, .5, c2);
+  } else {
+    R(s.x, s.y, s.w, s.h, c1);
+    for (let y = s.y; y < y1; y += 1) for (let x = s.x; x < x1; x += 1) { const n = ruido(x + 9, y + 3); if (n > .93) R(x, y, .5, .5, c2); else if (n < .04) R(x, y, 1, .5, c3); }
+    for (let x = s.x; x < x1; x += 32) R(x, s.y, .5, s.h, c3);
+    for (let y = s.y; y < y1; y += 32) R(s.x, y, s.w, .5, c3);
   }
-  if (m.microfone) { R(x + w - 12, y - 4, 2, 10, "#444"); R(x + w - 15, y - 6, 8, 4, "#2B2740"); }
-  if (id === "arquivos") { R(x, y - 6, w, 6, "#8E6540"); R(x + 4, y - 12, 10, 6, "#F2B84B"); R(x + 18, y - 11, 8, 5, "#fff"); }
-  if (id === "publicar") { R(x + w - 18, y - 6, 14, 10, "#fff"); R(x + w - 18, y - 6, 14, 2, "#F08A3C"); }
-}
-
-function item(tipo, x, y) {
-  const [w, h] = TIPOS[tipo];
-  switch (tipo) {
-    case "planta": R(x + 4, y + 13, 7, 7, "#B5683E"); R(x + 2, y + 4, 11, 10, "#3E9B55"); R(x + 5, y, 6, 8, "#52B86A"); R(x, y + 8, 4, 4, "#2F7D44"); break;
-    case "planta_grande": R(x + 4, y + 19, 10, 9, "#B5683E"); R(x + 1, y + 6, 16, 14, "#3E9B55"); R(x + 5, y, 9, 10, "#52B86A"); R(x + 12, y + 8, 6, 6, "#2F7D44"); break;
-    case "sofa": R(x, y + 4, w, h - 4, "#C9577A"); R(x, y, w, 8, "#B24367"); R(x + 4, y + 8, w - 8, 8, "#DE7592"); R(x - 2, y + 2, 5, h - 2, "#A93C5F"); R(x + w - 3, y + 2, 5, h - 2, "#A93C5F"); break;
-    case "mesa_centro": R(x, y, w, h, "#B98B5E"); R(x, y, w, 3, "#D2A777"); R(x + 4, y + h, 3, 3, "#8E6540"); R(x + w - 7, y + h, 3, 3, "#8E6540"); R(x + 10, y - 3, 6, 4, "#fff"); break;
-    case "tapete": R(x, y, w, h, "#E48F9F"); R(x + 3, y + 3, w - 6, h - 6, "#F4B6C2"); R(x + 7, y + 7, w - 14, h - 14, "#E48F9F"); break;
-    case "estante": R(x, y, w, h, "#7B5535"); R(x + 2, y + 2, w - 4, h - 4, "#4B3322");
-      ["#C9577A", "#4C7DF0", "#F2B84B", "#3E9B55", "#8B6CF0", "#E85FA0"].forEach((c, i) => { R(x + 3 + i * 6, y + 3, 4, 7, c); R(x + 3 + ((i + 2) % 6) * 6, y + 12, 4, 7, ["#F08A3C", "#1FB5A0", "#F2B84B"][i % 3]); }); break;
-    case "quadro_branco": R(x, y, w, h, "#9A9AB0"); R(x + 2, y + 2, w - 4, h - 4, "#fff"); R(x + 5, y + 6, 14, 2, "#4C7DF0"); R(x + 5, y + 10, 22, 2, "#E85FA0"); R(x + 5, y + 14, 10, 2, "#3E9B55"); break;
-    case "mesa": R(x, y + 4, w, h - 4, "#B98B5E"); R(x, y + 4, w, 2, "#D2A777"); R(x + 2, y + h, 3, 3, "#8E6540"); R(x + w - 5, y + h, 3, 3, "#8E6540"); break;
-    case "pufe": R(x, y + 2, w, h - 2, "#8B6CF0"); R(x + 1, y, w - 2, 5, "#A58CF5"); break;
-    case "cafe": R(x, y, w, h, "#4B4660"); R(x + 2, y + 2, w - 4, 8, "#9AB4C9"); R(x + 5, y + 13, 6, 5, "#fff"); R(x + 2, y + 10, w - 4, 2, "#2B2740"); break;
-    case "impressora": R(x, y + 4, w, h - 4, "#E8E8EE"); R(x + 2, y, w - 4, 6, "#fff"); R(x + 3, y + 8, w - 6, 2, "#3D3860"); break;
-    case "arquivo": R(x, y, w, h, "#8A93A6"); R(x + 1, y + 1, w - 2, 11, "#A6AEBF"); R(x + 1, y + 13, w - 2, 11, "#A6AEBF"); R(x + 5, y + 5, 6, 2, "#4B4660"); R(x + 5, y + 17, 6, 2, "#4B4660"); break;
+  alfa(.16, () => R(s.x, s.y + 16, s.w, 4, "#000")); alfa(.08, () => R(s.x, s.y + 20, s.w, 4, "#000"));
+  for (const wx of s.janelas) {   // luz que entra pela janela
+    cx.globalAlpha = .14; cx.fillStyle = "#FFFFFF"; cx.beginPath();
+    cx.moveTo(wx, s.y + 16); cx.lineTo(wx + 26, s.y + 16); cx.lineTo(wx + 52, s.y + 74); cx.lineTo(wx + 26, s.y + 74); cx.closePath(); cx.fill(); cx.globalAlpha = 1;
   }
+  cx.restore();
 }
-
 function paredes() {
   const T = 5, TOP = 16, faixas = [];
   for (const s of SALAS) {
-    const lados = {
-      t: [s.x, s.y, s.w, TOP, "x"], b: [s.x, s.y + s.h - T, s.w, T, "x"],
-      l: [s.x, s.y, T, s.h, "y"], r: [s.x + s.w - T, s.y, T, s.h, "y"],
-    };
+    const lados = { t: [s.x, s.y, s.w, TOP, "x"], b: [s.x, s.y + s.h - T, s.w, T, "x"], l: [s.x, s.y, T, s.h, "y"], r: [s.x + s.w - T, s.y, T, s.h, "y"] };
     for (const [lado, [x, y, w, h, eixo]] of Object.entries(lados)) {
       const portas = s.portas.filter((p) => p[0] === lado).map((p) => [p[1], p[2]]).sort((a, b) => a[0] - b[0]);
-      let ini = eixo === "x" ? x : y; const fim = eixo === "x" ? x + w : y + h;
-      const pedacos = [];
+      let ini = eixo === "x" ? x : y; const fim = eixo === "x" ? x + w : y + h, pedacos = [];
       for (const [a, b] of portas) { if (a > ini) pedacos.push([ini, a]); ini = b; }
       if (ini < fim) pedacos.push([ini, fim]);
-      for (const [a, b] of pedacos) faixas.push(eixo === "x" ? { x: a, y, w: b - a, h, lado } : { x, y: a, w, h: b - a, lado });
+      for (const [a, b] of pedacos) faixas.push({ ...(eixo === "x" ? { x: a, y, w: b - a, h } : { x, y: a, w, h: b - a }), lado, cor: s.parede, sx: s.x });
     }
   }
   return faixas;
 }
 const FAIXAS = paredes();
+function desenharParede(f) {
+  const b = f.cor;
+  if (f.lado === "t") {
+    R(f.x, f.y, f.w, 16, b); R(f.x, f.y, f.w, 2, tom(b, -.38)); R(f.x, f.y + 2, f.w, .5, tom(b, .25));
+    for (let px = f.sx + Math.ceil((f.x - f.sx) / 16) * 16; px < f.x + f.w; px += 16) R(px, f.y + 3, .5, 6, tom(b, -.14));
+    R(f.x, f.y + 9, f.w, 5, tom(b, -.15)); R(f.x, f.y + 9, f.w, .5, tom(b, .2));
+    R(f.x, f.y + 13.5, f.w, 2.5, tom(b, -.42)); R(f.x, f.y + 13.5, f.w, .5, tom(b, .06));
+  } else if (f.lado === "b") {
+    R(f.x, f.y, f.w, 5, tom(b, -.12)); R(f.x, f.y, f.w, 1, tom(b, .3)); R(f.x, f.y + 4, f.w, 1, tom(b, -.42));
+  } else {
+    R(f.x, f.y, f.w, f.h, tom(b, -.1)); R(f.x + (f.lado === "l" ? 0 : f.w - 1), f.y, 1, f.h, tom(b, .3)); R(f.x + (f.lado === "l" ? f.w - 1 : 0), f.y, 1, f.h, tom(b, -.38));
+  }
+}
+function janelasEPortas(s) {
+  for (const wx of s.janelas) {
+    const y = s.y + 3;
+    R(wx - 1, y - 1, 28, 11.5, "#F4EDDF"); R(wx, y, 26, 9.5, "#86C5F0"); R(wx, y, 26, 3.5, "#B4DFF8"); R(wx + 12.5, y, 1, 9.5, "#F4EDDF");
+    R(wx + 2, y + 1.5, 6, 1.5, "#fff"); R(wx + 3, y + 2.5, 5, 1, "#fff"); R(wx + 16, y + 3.5, 6, 1.5, "#fff"); R(wx, y + 8, 26, 1.5, "#7CC47F"); R(wx + 4, y + 7, 7, 1, "#7CC47F");
+    R(wx - 2, y + 10, 30, 1.5, "#D2C9B5"); R(wx - 2, y + 11.5, 30, .5, "#A59C88");
+  }
+  const p = tom(s.parede, -.5), c = tom(s.parede, .12);
+  for (const [lado, a, b] of s.portas) {
+    if (lado === "t") { R(a, s.y, 3, 16, p); R(b - 3, s.y, 3, 16, p); R(a, s.y, .5, 16, c); R(b - 3, s.y, .5, 16, c); }
+    else if (lado === "b") { R(a, s.y + s.h - 5, 3, 5, p); R(b - 3, s.y + s.h - 5, 3, 5, p); }
+    else if (lado === "l") { R(s.x, a, 5, 3, p); R(s.x, b - 3, 5, 3, p); }
+    else { R(s.x + s.w - 5, a, 5, 3, p); R(s.x + s.w - 5, b - 3, 5, 3, p); }
+  }
+}
+let fundo = null;
+function construirFundo() {
+  fundo = document.createElement("canvas"); fundo.width = L * 2; fundo.height = A * 2;
+  const antigo = cx; cx = fundo.getContext("2d"); cx.setTransform(2, 0, 0, 2, 0, 0);
+  R(0, 0, L, A, "#EADCC1");
+  for (let y = 0; y < A; y += 16) for (let x = 0; x < L; x += 16) {
+    const c = ((x + y) / 16) % 2 ? "#E6D7BB" : "#EDE0C7"; R(x, y, 16, 16, c); R(x, y, 16, .5, "#F4EAD6"); R(x, y, .5, 16, "#F1E6D0"); R(x, y + 15.5, 16, .5, "#D6C6A6"); R(x + 15.5, y, .5, 16, "#D6C6A6");
+  }
+  for (const s of SALAS) pisoSala(s);
+  const ordem = { l: 0, r: 0, b: 1, t: 2 };
+  [...FAIXAS].sort((a, b) => ordem[a.lado] - ordem[b.lado]).forEach(desenharParede);
+  for (const s of SALAS) janelasEPortas(s);
+  cx = antigo;
+}
 
+/* ---------- pessoas ---------- */
+function cabeca(x, yy, o, dir) {
+  const { pele, cabelo, estilo = 0 } = o, cab = cabelo, sombra = tom(pele, -.12);
+  if (dir === "u") {
+    R(x - 4.5, yy - 23.5, 9, 9, cab); R(x - 4.5, yy - 16.5, 9, 1, tom(cab, -.25)); R(x - 4.5, yy - 23.5, 9, 1, tom(cab, .2));
+    if (estilo === 1) R(x - 5, yy - 20, 10, 8, cab);
+    if (estilo === 2) { R(x - 5, yy - 24, 10, 4, "#C0392B"); R(x - 5, yy - 20.5, 10, 1, "#8F2B20"); }
+    return;
+  }
+  if (dir === "d") {
+    if (estilo === 1) { R(x - 5, yy - 22, 2, 9.5, cab); R(x + 3, yy - 22, 2, 9.5, cab); }
+    R(x - 4, yy - 22, 8, 7.5, pele); R(x - 4, yy - 16.5, 8, 2, sombra); R(x - 4.5, yy - 19, .5, 2, sombra); R(x + 4, yy - 19, .5, 2, sombra);
+    R(x - 4.5, yy - 23.5, 9, 3.5, cab); R(x - 4.5, yy - 23.5, 9, 1, tom(cab, .2)); R(x - 4.5, yy - 21, 1, 3, cab); R(x + 3.5, yy - 21, 1, 3, cab);
+    R(x - 4, yy - 20.5, 3.5, 1, cab); R(x + 1, yy - 20.5, 3, 1.5, cab);
+    if (estilo === 2) { R(x - 5, yy - 24.5, 10, 4, "#C0392B"); R(x - 5, yy - 21, 10, 1.5, "#8F2B20"); R(x - 4.5, yy - 24.5, 9, 1, "#E0584A"); }
+    R(x - 2.5, yy - 19, 1, 1.5, TINTA); R(x + 1.5, yy - 19, 1, 1.5, TINTA); R(x - 2.5, yy - 19, .5, .5, "#fff"); R(x + 1.5, yy - 19, .5, .5, "#fff");
+    R(x - 1, yy - 16.5, 2, .5, tom(pele, -.4)); alfa(.18, () => { R(x - 3.5, yy - 17.5, 1.5, 1, "#E85F6A"); R(x + 2, yy - 17.5, 1.5, 1, "#E85F6A"); });
+    return;
+  }
+  const s = dir === "r" ? 1 : -1, ox = s > 0 ? x - 3.5 : x - 3.5;
+  if (estilo === 1) R(s > 0 ? x - 5.5 : x + 1.5, yy - 22, 4, 9.5, cab);
+  R(ox, yy - 22, 7, 7.5, pele); R(ox, yy - 16.5, 7, 2, sombra);
+  R(x - 4, yy - 23.5, 8, 3.5, cab); R(x - 4, yy - 23.5, 8, 1, tom(cab, .2)); R(s > 0 ? x - 4.5 : x + 1.5, yy - 21, 3, 5, cab);
+  if (estilo === 2) { R(x - 4.5, yy - 24.5, 9, 4, "#C0392B"); R(s > 0 ? x : x - 6, yy - 21, 6, 1.5, "#8F2B20"); R(x - 4, yy - 24.5, 8, 1, "#E0584A"); }
+  R(x + s * 1.5 - .5, yy - 19, 1, 1.5, TINTA); R(x + s * 1.5 - .5, yy - 19, .5, .5, "#fff"); R(s > 0 ? x + 3.5 : x - 4, yy - 17.5, .5, 1, sombra);
+}
+function corpo(x, yy, o, dir, sentado, bracos) {
+  const { camisa, pele } = o, lado = dir === "l" || dir === "r", larg = lado ? 6 : 8, a = bracos || 0;
+  R(x - larg / 2, yy - 15, larg, 9, camisa); R(x - larg / 2, yy - 15, larg, 1, tom(camisa, .22)); R(x - larg / 2, yy - 8.5, larg, 2.5, tom(camisa, -.16));
+  if (dir === "d") { R(x - 1.5, yy - 15, 3, 1.5, pele); R(x - 1.5, yy - 15, 3, .5, tom(pele, -.2)); }
+  if (dir === "u") R(x - 1.5, yy - 15, 3, 1, tom(pele, -.15));
+  if (lado) { const bx = x - 1 + (dir === "r" ? a * .8 : -a * .8); R(bx, yy - 14, 2, 7, tom(camisa, -.1)); R(bx, yy - 7.5, 2, 1.5, pele); }
+  else { R(x - 6, yy - 14 + a, 2, 7, camisa); R(x - 6, yy - 7.5 + a, 2, 1.5, pele); R(x + 4, yy - 14 - a, 2, 7, camisa); R(x + 4, yy - 7.5 - a, 2, 1.5, pele); }
+}
+function pessoa(x, y, o) {
+  const dir = o.dir || "d", ciclo = o.andando ? [0, 1, 0, -1][(o.f || 0) % 4] : 0, bob = o.andando && (o.f || 0) % 2 ? -.5 : 0, yy = y + bob;
+  alfa(.22, () => { R(x - 5, y - 1.5, 10, 2.5, "#000"); R(x - 4, y - 2, 8, 1, "#000"); });
+  const calca = o.calca || "#35305A", lado = dir === "l" || dir === "r";
+  if (lado) {
+    const dx = ciclo * 1.6, sh = dir === "r" ? 1 : 0;
+    R(x - 1.5 - dx, y - 6.5, 3, 5.5, tom(calca, -.15)); R(x - 1.5 - dx - (dir === "l" ? .5 : 0), y - 1.5, 3.5, 1.5, "#2B2740");
+    R(x - 1.5 + dx, y - 6.5, 3, 5.5, calca); R(x - 1.5 + dx - (dir === "l" ? .5 : 0), y - 1.5, 3.5, 1.5, "#2B2740");
+  } else {
+    const l1 = Math.max(0, ciclo) * 1.5, l2 = Math.max(0, -ciclo) * 1.5;
+    R(x - 3.5, y - 6.5 - l1 * .5, 3, 5.5 - l1 * .5, calca); R(x - 3.5, y - 1.5 - l1, 3, 1.5, "#2B2740");
+    R(x + .5, y - 6.5 - l2 * .5, 3, 5.5 - l2 * .5, calca); R(x + .5, y - 1.5 - l2, 3, 1.5, "#2B2740");
+    R(x - 3.5, y - 7, 7, 1, tom(calca, -.3));
+  }
+  corpo(x, yy, o, dir, false, o.andando ? ciclo : 0);
+  cabeca(x, yy, o, dir);
+}
+function pessoaSentada(x, yy, o, t, digitando) {
+  R(x - 6.5, yy - 17, 13, 12, "#35305A"); R(x - 6.5, yy - 17, 13, 1.5, "#4D4780"); R(x - 6.5, yy - 17, .5, 12, "#4D4780");
+  R(x - 7.5, yy - 10, 2, 6, "#2A2646"); R(x + 5.5, yy - 10, 2, 6, "#2A2646");
+  corpo(x, yy, o, "d", true, digitando ? ((Math.floor(t * 8) % 2) ? .5 : 0) : 0);
+  cabeca(x, yy, o, "d");
+}
+function retrato(id, cor, canvas) {
+  const ap = APARENCIA[id] || APARENCIA.arquivos, antigo = cx, g = canvas.getContext("2d");
+  g.clearRect(0, 0, canvas.width, canvas.height); cx = g; g.setTransform(2, 0, 0, 2, 0, 0);
+  pessoa(11, 27, { pele: PELE[ap[0]], cabelo: CABELO[ap[1]], estilo: ap[2], camisa: cor, dir: "d" });
+  cx = antigo;
+}
+
+/* ---------- mesas ---------- */
+function acessorios(id, m, t, trab) {
+  const { x, y, w } = m;
+  switch (id) {
+    case "ideias":   R(x + w - 7, y - 2, 1, 7, "#6B6585"); R(x + w - 9, y - 5, 5, 4, "#FFE27A"); alfa(.25, () => R(x + w - 11, y - 7, 9, 8, "#FFE27A")); R(x + 3, y + 5.5, 3, 3, "#fff"); R(x + 6, y + 6, 1, 1.5, "#fff"); break;
+    case "roteiro":  R(x + w - 14, y + 5.5, 9, 3.5, "#fff"); R(x + w - 14, y + 5.5, 9, .5, "#E8E8EE"); R(x + w - 13, y + 4.5, 8, 1.5, "#F6E8A8"); R(x + w - 6, y + 6.5, 4, .5, "#4C7DF0"); R(x + 3, y + 5.5, 3, 3, "#E0A12A"); break;
+    case "titulo":   [["#FFE27A", 2], ["#F59AB0", 5.5], ["#8FD3F4", 9]].forEach(([c, dx]) => { R(x + dx, y + 5.2, 3, 3, c); R(x + dx + .5, y + 6.2, 2, .5, tom(c, -.3)); }); R(x + w - 8, y + 5.5, 4, 3, "#3E9B55"); break;
+    case "voz":      R(x + w - 12, y - 8, 1, 14, "#4B4660"); R(x + w - 16, y - 9, 8, 8, "#2B2740"); R(x + w - 15, y - 8, 6, 6, "#3D3860"); R(x + w - 14, y - 7, 4, 4, "#6B6585");
+                     R(x + 3, y + 5.5, 6, 3.5, "#2B2740"); R(x + 3.5, y + 4.5, 5, 1.5, "#444"); if (!trab || Math.floor(t * 2) % 2) R(x + w - 4, y - 6, 2, 2, trab ? "#FF4B4B" : "#7A3B3B"); break;
+    case "editor":   R(x + 2, y + 5.5, 6, 3.5, "#fff"); R(x + 2, y + 5.5, 6, .5, "#E85FA0"); R(x + w - 9, y + 5.5, 3, 3, "#3D3860"); break;
+    case "thumb":    R(x + w - 17, y + 6, 10, 6, "#2B2740"); R(x + w - 16, y + 6.5, 8, 5, "#3D3860"); R(x + w - 7, y + 5, .5, 5, "#E85FA0"); [["#E85FA0", 3], ["#4C7DF0", 5.5], ["#F2B84B", 8], ["#3E9B55", 10.5]].forEach(([c, dx]) => R(x + dx, y + 5.5, 2, 3, c)); break;
+    case "shorts":   R(x + w - 12, y + 3, 6, 9, "#2B2740"); R(x + w - 11.5, y + 3.5, 5, 7.5, "#E85FA0"); R(x + 3, y + 5.5, 3, 3, "#fff"); break;
+    case "publicar": R(x + w - 18, y + 1, 9, 8.5, "#C99A5B"); R(x + w - 18, y + 1, 9, 1.5, "#DDB173"); R(x + w - 14.5, y + 1, 2, 8.5, "#F0D9A8"); R(x + 3, y + 5.5, 6, 3.5, "#fff"); R(x + 3, y + 5.5, 6, .5, "#F08A3C"); break;
+  }
+}
+function pcTela(id, i, n, tx, ty, tw, th, cor, trab, t) {
+  R(tx - .75, ty - .75, tw + 1.5, th + 1.5, "#1B1830"); R(tx - .75, ty - .75, tw + 1.5, .5, "#4A4670");
+  if (id === "editor" && i === 1) {
+    R(tx, ty, tw, th, "#262338");
+    [["#4C7DF0", 0, 5], ["#E85FA0", 5.5, 4], ["#3E9B55", 10, 3]].forEach(([c, dx, ww], k) => { R(tx + 1 + dx, ty + 1.5, ww, 2, c); R(tx + 2 + dx * .6, ty + 4.5, ww, 2, k % 2 ? "#F2B84B" : "#8B6CF0"); });
+    R(tx + 1 + (trab ? (t * 3) % (tw - 2) : 5), ty + .5, .5, th - 1, "#fff"); return;
+  }
+  if (trab) {
+    R(tx, ty, tw, th, "#E8F6FF");
+    for (let k = 0; k < Math.floor((th - 1) / 2.5); k++) { const wl = 2 + ((Math.floor(t * 5) + k * 5) % Math.max(2, tw - 4)); R(tx + 1, ty + 1 + k * 2.5, wl, 1, k % 2 ? "#4C7DF0" : "#2B2740"); }
+  } else {
+    R(tx, ty, tw, th, tom(cor, -.12)); R(tx, ty + th * .55, tw, th * .45, tom(cor, -.4)); alfa(.45, () => R(tx + .5, ty + .5, tw * .45, 1, "#fff"));
+    R(tx + 1, ty + th - 2.5, 1.5, 1.5, "#fff"); R(tx + 3, ty + th - 2.5, 1.5, 1.5, "#F2B84B");
+  }
+}
+function mesaFunc(id, m, cor, est, t) {
+  const { x, y, w } = m, mx = x + w / 2, trab = est === "trabalhando";
+  alfa(.2, () => R(x + 1, y + 16, w, 3, "#000"));
+  R(x, y + 4.5, w, 5.5, "#CFA06A"); R(x, y + 4.5, w, .5, "#E8C18D"); R(x, y + 9.5, w, .5, "#9C6F3E");
+  R(x + .5, y + 10, w - 1, 6, "#A8794A"); R(x + .5, y + 10, w - 1, .5, "#8E6540"); R(x + .5, y + 15.5, w - 1, .5, "#7A5330");
+  R(x + 2, y + 11.5, w / 2 - 3, 3.5, "#97693B"); R(x + w / 2 + 1, y + 11.5, w / 2 - 3, 3.5, "#97693B");
+  R(x + w / 4 - 1.5, y + 12.5, 3, .5, "#E8C18D"); R(x + 3 * w / 4 - 1.5, y + 12.5, 3, .5, "#E8C18D");
+  if (m.tela) {
+    const n = m.tela, tw = m.vertical ? 8 : 14, th = m.vertical ? 12 : 9, gap = 2.5;
+    for (let i = 0; i < n; i++) {
+      const tx = n === 2 ? (i ? x + w - 5 - tw : x + 5) : (m.vertical ? x + 6 : mx - tw / 2 - 4), ty = y + 4.5 - th;
+      R(tx + tw / 2 - 1.5, y + 4.5, 3, 1.5, "#4B4660"); R(tx + tw / 2 - 3, y + 5.5, 6, 1, "#2B2740");
+      pcTela(id, i, n, tx, ty, tw, th, cor, trab, t);
+    }
+    R(mx - 5, y + 6.8, 10, 2.5, "#E4E4EC"); R(mx - 5, y + 9, 10, .5, "#A9A9B8");
+    for (let k = 0; k < 6; k++) R(mx - 4.5 + k * 1.6, y + 7.3, .8, .5, "#9A9AAE");
+    R(mx + 7, y + 7, 2, 2.5, "#E4E4EC");
+  }
+  if (id === "arquivos") { R(x + 4, y - 1, 10, 6, "#F2B84B"); R(x + 4, y - 1, 10, 1, "#FFD27A"); R(x + 18, y, 8, 5, "#fff"); R(x + 30, y - 3, 8, 8, "#6B7C93"); R(x + 40, y + 1, 10, 4, "#E85FA0"); }
+  acessorios(id, m, t, trab);
+}
+
+/* ---------- móveis e objetos ---------- */
+function sombraObj(x, y, w, h) { alfa(.2, () => R(x + 1, y + h - 1.5, w - 1, 3, "#000")); }
+function item(tipo, x, y) {
+  const [w, h] = TIPOS[tipo];
+  switch (tipo) {
+    case "planta": case "planta_grande": {
+      const g = tipo === "planta_grande", k = g ? 1.1 : .82, px = x + w / 2, pw = g ? 11 : 8, ph = g ? 9 : 6.5, base = y + h - ph;
+      sombraObj(x, y, w, h);
+      R(px - pw / 2, base, pw, ph, "#B5683E"); R(px - pw / 2 - .5, base, pw + 1, 1.5, "#D48B5E"); R(px - pw / 2, y + h - 1, pw, 1, "#8E4F2E"); R(px - pw / 2 + 1, base + 1.5, pw - 2, 1, "#4A3426");
+      R(px - .5, base - 9 * k, 1, 9 * k, "#2F7D44");
+      [[-7, -7, 5, 3, "#2F7D44"], [2, -6, 5, 3, "#2F7D44"], [-5, -11, 5, 3.5, "#3E9B55"], [1, -10, 5, 3.5, "#3E9B55"], [-3.5, -14.5, 7, 4, "#52B86A"], [-1.5, -17.5, 3.5, 3.5, "#6ACB80"]]
+        .forEach(([dx, dy, ww, hh, c]) => { R(px + dx * k, base + dy * k, ww * k, hh * k, c); R(px + dx * k, base + dy * k, ww * k, .5, tom(c, .25)); });
+      break;
+    }
+    case "sofa":
+      sombraObj(x, y, w, h);
+      R(x, y, w, 9, "#9E3558"); R(x, y, w, 1, "#D6678A"); R(x + 2, y + 8, w - 4, 11, "#B24367"); R(x - 1, y + 4, 5, 15, "#A93C5F"); R(x + w - 4, y + 4, 5, 15, "#A93C5F"); R(x - 1, y + 4, 5, 1, "#D6678A"); R(x + w - 4, y + 4, 5, 1, "#D6678A");
+      [5, 25].forEach((dx) => { R(x + dx, y + 2, 17, 7, "#C9577A"); R(x + dx, y + 2, 17, .5, "#E58AA6"); R(x + dx, y + 10, 17, 8, "#D6678A"); R(x + dx, y + 10, 17, .5, "#F09AB6"); R(x + dx, y + 17, 17, 1, "#9E3558"); });
+      R(x + 2, y + 19, 2, 1, "#5A2236"); R(x + w - 4, y + 19, 2, 1, "#5A2236"); break;
+    case "poltrona":
+      sombraObj(x, y, w, h);
+      R(x, y + 1, w, 16, "#2F8F83"); R(x, y + 1, w, 1, "#5FBFB2"); R(x + 3, y + 8, w - 6, 8, "#46B0A2"); R(x + 3, y + 8, w - 6, .5, "#7ADACB"); R(x, y + 6, 3, 11, "#267A70"); R(x + w - 3, y + 6, 3, 11, "#267A70"); R(x + 2, y + 17, 2, 1, "#1B544D"); R(x + w - 4, y + 17, 2, 1, "#1B544D"); break;
+    case "mesa_centro":
+      sombraObj(x, y, w, h);
+      R(x, y, w, 9, "#C99B66"); R(x, y, w, 1, "#E8C18D"); R(x, y + 9, w, 2, "#8E6540"); R(x + 2, y + 11, 2, 3, "#7A5330"); R(x + w - 4, y + 11, 2, 3, "#7A5330");
+      R(x + 4, y + 1.5, 4, 3.5, "#fff"); R(x + 8, y + 2.5, 1, 1.5, "#fff"); R(x + 14, y + 2, 9, 5, "#4C7DF0"); R(x + 14, y + 2, 9, .5, "#7A9FF5"); R(x + 15, y + 3.5, 7, .5, "#fff"); break;
+    case "tapete":
+      R(x, y, w, h, "#C95A78"); R(x + 2, y + 2, w - 4, h - 4, "#F4B6C2"); R(x + 4, y + 4, w - 8, h - 8, "#DD7E96");
+      for (let i = 0; i < 5; i++) { R(x + 9 + i * 10, y + h / 2 - 2, 4, 4, "#F4B6C2"); R(x + 10.5 + i * 10, y + h / 2 - .5, 1, 1, "#C95A78"); }
+      for (let i = 0; i < w; i += 4) { R(x + i, y - 1, 1.5, 1, "#F4B6C2"); R(x + i, y + h, 1.5, 1, "#F4B6C2"); } break;
+    case "tapete_redondo":
+      cx.fillStyle = "#6E5BB5"; cx.beginPath(); cx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, 7); cx.fill();
+      cx.fillStyle = "#A78FE0"; cx.beginPath(); cx.ellipse(x + w / 2, y + h / 2, w / 2 - 2.5, h / 2 - 2.5, 0, 0, 7); cx.fill();
+      cx.fillStyle = "#8A72CF"; cx.beginPath(); cx.ellipse(x + w / 2, y + h / 2, w / 2 - 8, h / 2 - 6, 0, 0, 7); cx.fill(); break;
+    case "estante": {
+      R(x, y, w, h, "#7B5535"); R(x, y, w, 1, "#A57A52"); R(x + 1.5, y + 2, w - 3, h - 3.5, "#43301F"); R(x + 1.5, y + 10.5, w - 3, 1, "#7B5535");
+      [0, 1].forEach((fila) => { let bx = x + 2.5; const by = y + 2.5 + fila * 9.5, cores = ["#C9577A", "#4C7DF0", "#F2B84B", "#3E9B55", "#8B6CF0", "#E85FA0", "#F08A3C", "#1FB5A0"];
+        for (let i = 0; bx < x + w - 6; i++) { const n = ruido(x + i, fila * 5 + y), bw = 2 + Math.floor(n * 2), bh = 6 - Math.floor(n * 2.5), c = cores[(i * 3 + fila * 2 + Math.floor(x / 8)) % cores.length];
+          R(bx, by + (7 - bh), bw, bh, c); R(bx, by + (7 - bh), bw, .5, tom(c, .3)); bx += bw + .5; }
+        R(bx + .5, by + 2, 3.5, 5, fila ? "#fff" : "#3E9B55"); R(bx + .5, by + 2, 3.5, .5, "#ddd"); });
+      R(x, y + h - 1, w, 1, "#5A3C22"); break;
+    }
+    case "quadro_branco":
+      R(x, y, w, h, "#8F8FA8"); R(x, y, w, 1, "#B9B9CE"); R(x + 1.5, y + 1.5, w - 3, h - 4, "#FDFDFD"); R(x + 1.5, y + h - 2.5, w - 3, 1, "#E4E4EE"); R(x + 6, y + h - 2, 5, 1, "#E85FA0"); R(x + 13, y + h - 2, 5, 1, "#4C7DF0");
+      R(x + 4, y + 4, 12, 1, "#4C7DF0"); R(x + 4, y + 7, 18, 1, "#E85FA0"); R(x + 4, y + 10, 9, 1, "#3E9B55");
+      [["#FFE27A", 22, 3], ["#F59AB0", 27, 6.5], ["#8FD3F4", 24, 11]].forEach(([c, dx, dy]) => { R(x + dx, y + dy, 4, 4, c); R(x + dx + .5, y + dy + 1, 3, .5, tom(c, -.3)); R(x + dx + .5, y + dy + 2.2, 2, .5, tom(c, -.3)); }); break;
+    case "mesa":
+      sombraObj(x, y, w, h); R(x, y + 4, w, h - 4, "#C99B66"); R(x, y + 4, w, 1, "#E8C18D"); R(x + 2, y + h, 3, 3, "#8E6540"); R(x + w - 5, y + h, 3, 3, "#8E6540"); break;
+    case "pufe":
+      sombraObj(x, y, w, h); R(x + 1, y + 3, w - 2, 9, "#7C5CE0"); R(x + 2, y + 1, w - 4, 3.5, "#A58CF5"); R(x + 3, y + 1, w - 6, .5, "#C7B6FA"); R(x + 1, y + 11, w - 2, 1, "#5A3FB8"); R(x + 6, y + 4.5, 2, 5, "#6648CC"); break;
+    case "cafe":
+      sombraObj(x, y, w, h); R(x, y, w, h, "#4B4660"); R(x, y, w, 1.5, "#6B6585"); R(x + 2, y + 2.5, w - 4, 8, "#B4D1E4"); R(x + 2, y + 2.5, w - 4, 1, "#E3F1FA"); R(x + 4, y + 6, w - 8, 3.5, "#6B4426");
+      R(x + 2, y + 11.5, w - 4, 1, "#2B2740"); R(x + 5, y + 14, 6, 5, "#fff"); R(x + 5, y + 14, 6, .5, "#ddd"); R(x + 11, y + 15, 1, 2.5, "#fff"); R(x + 2, y + 13, 2, 2, "#FF4B4B"); R(x + 2, y + h - 1.5, w - 4, 1.5, "#2B2740"); break;
+    case "impressora":
+      sombraObj(x, y, w, h); R(x, y + 4, w, h - 4, "#E4E4EC"); R(x, y + 4, w, 1, "#fff"); R(x + 2, y, w - 4, 5, "#F4F4F8"); R(x + 2, y, w - 4, .5, "#fff"); R(x + 3, y + 8, w - 6, 2, "#3D3860"); R(x + 4, y + 6, w - 8, 1.5, "#fff"); R(x + w - 5, y + 5.5, 1.5, 1.5, "#3E9B55"); R(x, y + h - 1.5, w, 1.5, "#B8B8C6"); break;
+    case "arquivo":
+      sombraObj(x, y, w, h); R(x, y, w, h, "#7F889C"); R(x, y, w, 1, "#C9D0DE"); R(x, y, .5, h, "#A9B1C4");
+      [1.5, 9.5, 17.5].forEach((dy) => { R(x + 1.5, y + dy, w - 3, 7, "#A6AEBF"); R(x + 1.5, y + dy, w - 3, .5, "#D3D9E6"); R(x + 4, y + dy + 1.5, w - 8, 2, "#F4F4F8"); R(x + w / 2 - 2, y + dy + 4.5, 4, .8, "#4B4660"); }); break;
+    case "bebedouro":
+      sombraObj(x, y, w, h); R(x + 1, y, w - 2, 10, "#9FD6F5"); R(x + 1, y, w - 2, 1, "#D6F0FC"); R(x + 2, y + 2, 1.5, 5, "#fff"); R(x + 1, y + 10, w - 2, 13.5, "#E4E4EC"); R(x + 1, y + 10, w - 2, 1, "#fff"); R(x + 3, y + 13, 2, 2, "#4C7DF0"); R(x + 6, y + 13, 2, 2, "#E85F5F"); R(x + 2, y + 17.5, w - 4, 3, "#B8B8C6"); R(x + 2, y + 23, w - 4, 1, "#8A8A9A"); break;
+    case "luminaria":
+      alfa(.14, () => { cx.fillStyle = "#FFE9A0"; cx.beginPath(); cx.ellipse(x + w / 2, y + 22, 18, 11, 0, 0, 7); cx.fill(); });
+      sombraObj(x, y, w, h); R(x + 3, y + 24, 4, 2, "#4B4660"); R(x + 4.5, y + 8, 1, 16, "#6B6585"); R(x + 1, y, 8, 8.5, "#F2D27A"); R(x + 1, y, 8, 1, "#FFF1B8"); R(x + 2, y + 8, 6, 1, "#C9A94F"); R(x + 2, y + 2, 1.5, 4, "#FFF6D6"); break;
+    case "maquina":
+      sombraObj(x, y, w, h); R(x, y, w, h, "#C94545"); R(x, y, w, 1.5, "#E36B6B"); R(x + 1.5, y + 3, 12, 15, "#1F2B3C"); R(x + 1.5, y + 3, 12, 1, "#3A4A60");
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) { const c = ["#F2B84B", "#4C7DF0", "#3E9B55", "#E85FA0", "#8B6CF0", "#F08A3C"][(i * 4 + j) % 6]; R(x + 2.5 + j * 2.8, y + 4.5 + i * 4.5, 2, 3, c); }
+      R(x + 15, y + 4, 3.5, 6, "#F4F4F8"); R(x + 15.5, y + 5, 2.5, 1, "#E85F5F"); R(x + 15.5, y + 7, 2.5, 1, "#3E9B55"); R(x + 2, y + 21, w - 4, 4, "#1F2B3C"); R(x + 2, y + 21, w - 4, .5, "#3A4A60"); R(x + 2, y + h - 1.5, w - 4, 1.5, "#8F2E2E"); break;
+    case "caixas":
+      sombraObj(x, y, w, h); R(x, y + 5, 11, 9, "#C99A5B"); R(x, y + 5, 11, 1.5, "#DDB173"); R(x + 4.5, y + 5, 2, 9, "#F0D9A8");
+      R(x + 6, y, 11, 8, "#D8AB6C"); R(x + 6, y, 11, 1.5, "#EBC48A"); R(x + 10.5, y, 2, 8, "#F0D9A8"); R(x, y + 13, 11, 1, "#9C6F3E"); R(x + 6, y + 7, 11, 1, "#A97D45"); break;
+    default: R(x, y, w, h, "#999");
+  }
+}
+
+/* ---------- cena ---------- */
+let alvoPerto = null;
+function destaque(m, t) {
+  const a = .55 + .35 * Math.sin(t * 6), x0 = m.x - 3, y0 = m.y - 22, x1 = m.x + m.w + 3, y1 = m.y + 17;
+  alfa(a, () => { [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]].forEach(([cx0, cy0, sx, sy]) => { R(sx > 0 ? cx0 : cx0 - 5, cy0 - (sy < 0 ? 1 : 0), 5, 1, "#F2B84B"); R(sx > 0 ? cx0 : cx0 - 1, sy > 0 ? cy0 : cy0 - 5, 1, 5, "#F2B84B"); }); });
+}
 function desenharMundo(t) {
-  R(0, 0, L, A, "#EBDCC4");
-  for (let y = 0; y < A; y += 16) for (let x = 0; x < L; x += 16) if (((x + y) / 16) % 2) R(x, y, 16, 16, "#E6D5BB");
-  for (const s of SALAS) {
-    for (let y = 0; y < s.h; y += 16) for (let x = 0; x < s.w; x += 16) R(s.x + x, s.y + y, Math.min(16, s.w - x), Math.min(16, s.h - y), s.pisos[((x + y) / 16) % 2]);
-  }
-  for (const d of S.decoracao) if (d.tipo === "tapete") item(d.tipo, d.x, d.y);
-  for (const f of FAIXAS) {
-    R(f.x, f.y, f.w, f.h, PAREDE);
-    if (f.lado === "t") { R(f.x, f.y + 4, f.w, f.h - 4, PAREDE_FACE); R(f.x, f.y + f.h - 3, f.w, 3, "#5A5580"); }
-    R(f.x, f.y, f.w, 2, "#7E78A8");
-  }
-  // objetos ordenados por profundidade
+  cx.setTransform(2, 0, 0, 2, 0, 0); cx.imageSmoothingEnabled = false;
+  if (!fundo) construirFundo();
+  cx.drawImage(fundo, 0, 0, L, A);
+  for (const d of S.decoracao) if (TAPETES.has(d.tipo)) item(d.tipo, d.x, d.y);
   const objs = [];
-  for (const d of S.decoracao) if (d.tipo !== "tapete") objs.push({ y: d.y + TIPOS[d.tipo][1], desenhar: () => item(d.tipo, d.x, d.y), deco: d });
+  for (const d of S.decoracao) if (!TAPETES.has(d.tipo)) objs.push({ y: d.y + TIPOS[d.tipo][1], desenhar: () => item(d.tipo, d.x, d.y) });
+  const aparencia = (id) => { const [p, c, e] = APARENCIA[id] || APARENCIA.arquivos; return { pele: PELE[p], cabelo: CABELO[c], estilo: e }; };
   for (const f of S.funcionarios) {
     const m = MESAS[f.id], fn = func(f.id), est = estadoDe(f.id);
-    objs.push({ y: m.y + 5, desenhar: () => { const [p, c] = APARENCIA[f.id]; pessoa(m.x + m.w / 2, m.y + 8, PELE[p], CABELO[c], fn.cor, 0, true); } });
-    objs.push({ y: m.y + 16, desenhar: () => mesa(f.id, m, fn.cor, est, t) });
+    objs.push({ y: m.y + 5, desenhar: () => pessoaSentada(m.x + m.w / 2, m.y + 5, { ...aparencia(f.id), camisa: fn.cor }, t, est === "trabalhando") });
+    objs.push({ y: m.y + 16, desenhar: () => mesaFunc(f.id, m, fn.cor, est, t) });
   }
   const am = MESAS.arquivos;
-  objs.push({ y: am.y + 5, desenhar: () => pessoa(am.x + am.w / 2, am.y + 8, PELE[2], CABELO[3], "#6B7C93", 0, true) });
-  objs.push({ y: am.y + 16, desenhar: () => mesa("arquivos", am, "#6B7C93", "livre", t) });
-  objs.push({ y: jog.y, desenhar: () => pessoa(jog.x, jog.y + ((!reduzMov && !jog.andando) ? Math.round(Math.sin(t * 3)) * 0 : 0), PELE[1], "#2B2118", "#F2B84B", jog.andando ? Math.floor(t * 8) % 2 : 0, false) });
+  objs.push({ y: am.y + 5, desenhar: () => pessoaSentada(am.x + am.w / 2, am.y + 5, { ...aparencia("arquivos"), camisa: "#6B7C93" }, t, false) });
+  objs.push({ y: am.y + 16, desenhar: () => mesaFunc("arquivos", am, "#6B7C93", "livre", t) });
+  objs.push({ y: jog.y, desenhar: () => pessoa(jog.x, jog.y, { pele: PELE[1], cabelo: "#2B2118", estilo: 0, camisa: "#F2B84B", calca: "#3B5BA5", dir: jog.dir, f: jog.f, andando: jog.andando }) });
   objs.sort((a, b) => a.y - b.y).forEach((o) => o.desenhar());
+  if (alvoPerto && !S.editandoDeco) destaque(MESAS[alvoPerto], t);
   if (S.editandoDeco && S.sel != null) { const d = S.decoracao[S.sel]; if (d) { const [w, h] = TIPOS[d.tipo]; cx.strokeStyle = "#F2B84B"; cx.lineWidth = 1; cx.setLineDash([3, 2]); cx.strokeRect(d.x - 1.5, d.y - 1.5, w + 3, h + 3); cx.setLineDash([]); } }
 }
 
@@ -368,9 +594,9 @@ function montarEtiquetas() {
     const m = MESAS[f.id], fn = func(f.id);
     const e = el("div", "etiqueta"); e.id = "tag-" + f.id; e.style.setProperty("--cor", fn.cor);
     e.append(el("i"), el("span", "", fn.nome), el("em"));
-    pos(e, m.x + m.w / 2, m.y - 20); box.append(e);
+    pos(e, m.x + m.w / 2, m.y - 21); box.append(e);
   }
-  const a = el("div", "etiqueta"); a.style.setProperty("--cor", "#6B7C93"); a.append(el("i"), el("span", "", "Arq")); pos(a, MESAS.arquivos.x + MESAS.arquivos.w / 2, MESAS.arquivos.y - 24); box.append(a);
+  const a = el("div", "etiqueta"); a.style.setProperty("--cor", "#6B7C93"); a.append(el("i"), el("span", "", "Arq")); pos(a, MESAS.arquivos.x + MESAS.arquivos.w / 2, MESAS.arquivos.y - 21); box.append(a);
   const eu = el("div", "etiqueta"); eu.id = "tag-eu"; eu.style.setProperty("--cor", "#F2B84B"); eu.append(el("i"), el("span", "", "Você")); box.append(eu);
   atualizarEtiquetas();
 }
@@ -406,7 +632,9 @@ function mover(dt) {
   let dx = (teclas.has("ArrowRight") || teclas.has("d") ? 1 : 0) - (teclas.has("ArrowLeft") || teclas.has("a") ? 1 : 0);
   let dy = (teclas.has("ArrowDown") || teclas.has("s") ? 1 : 0) - (teclas.has("ArrowUp") || teclas.has("w") ? 1 : 0);
   jog.andando = !!(dx || dy);
-  if (!jog.andando) return;
+  if (!jog.andando) { jog.tempo = 0; jog.f = 0; return; }
+  jog.dir = dx ? (dx > 0 ? "r" : "l") : (dy > 0 ? "d" : "u");
+  jog.tempo += dt; jog.f = Math.floor(jog.tempo * 9) % 4;
   const n = Math.hypot(dx, dy), v = 76 * dt, lista = solidos();
   const nx = jog.x + dx / n * v, ny = jog.y + dy / n * v;
   if (!bate(nx, jog.y, lista)) jog.x = nx;
@@ -425,6 +653,7 @@ function quadro(agora) {
   desenharMundo(agora / 1000);
   const tag = $("#tag-eu"); if (tag) { tag.style.left = (jog.x / L * 100) + "%"; tag.style.top = ((jog.y - 24) / A * 100) + "%"; }
   const perto = S.editandoDeco ? null : proximo();
+  alvoPerto = perto;
   const dica = $("#dica");
   if (S.editandoDeco) dica.textContent = "Modo decorar: clique em um objeto e arraste. Use a barra abaixo para adicionar ou remover.";
   else if (perto) dica.textContent = "Aperte E para falar com " + (perto === "arquivos" ? "o Arq (arquivos)" : func(perto).nome);
@@ -545,10 +774,7 @@ function abrirFuncionario(id) {
 }
 function topoPainel(id, titulo, subtitulo, cor, personalizavel) {
   const t = el("div", "p-topo"); t.style.setProperty("--cor-fraca", cor + "33");
-  const c = el("canvas"); c.width = 22; c.height = 28; const g = c.getContext("2d"); g.imageSmoothingEnabled = false;
-  const [p, ca] = APARENCIA[id] || [2, 3];
-  g.fillStyle = PELE[p]; g.fillRect(7, 8, 8, 8); g.fillStyle = CABELO[ca]; g.fillRect(6, 6, 10, 4); g.fillRect(6, 8, 1, 4); g.fillRect(15, 8, 1, 4);
-  g.fillStyle = TINTA; g.fillRect(9, 11, 1, 2); g.fillRect(12, 11, 1, 2); g.fillStyle = cor; g.fillRect(5, 17, 12, 9);
+  const c = el("canvas"); c.width = 44; c.height = 56; retrato(id, cor, c);
   const g2 = el("div", "grow"); g2.append(el("h2", "", titulo), el("p", "", subtitulo));
   const x = el("button", "icone", "×"); x.setAttribute("aria-label", "Fechar"); x.addEventListener("click", fecharPainel);
   t.append(c, g2);

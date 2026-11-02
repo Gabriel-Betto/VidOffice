@@ -18,7 +18,8 @@ from .armazenamento import Armazenamento, ErroArmazenamento
 PASTA_WEB = Path(__file__).parent / "web"
 MAX_JSON = 512 * 1024
 TIPOS_DECORACAO = {"planta", "planta_grande", "sofa", "mesa_centro", "tapete", "estante", "quadro_branco",
-                   "mesa", "pufe", "cafe", "impressora", "arquivo"}
+                   "mesa", "pufe", "cafe", "impressora", "arquivo", "bebedouro", "luminaria", "poltrona", "maquina",
+                   "tapete_redondo", "caixas"}
 MAX_DECORACAO = 150
 COR_VALIDA = re.compile(r"^#[0-9a-fA-F]{6}$")
 SEGURO_INLINE = ("audio/", "video/", "image/png", "image/jpeg", "image/webp", "image/gif", "text/plain")

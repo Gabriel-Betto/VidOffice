@@ -305,10 +305,10 @@ class TestHTTP(unittest.TestCase):
         self.assertEqual(self.j("GET", f"/api/projetos/{pid}")[1]["arquivos"]["entrega"][0]["nome"], "pacote.md")
 
     def test_escritorio_valida_tudo(self):
-        ok = {"decoracao": [{"tipo": "planta", "x": 10.4, "y": 20}], "funcionarios": {"ideias": {"nome": "Ivy", "cor": "#112233"}}}
+        ok = {"decoracao": [{"tipo": "planta", "x": 10.4, "y": 20}, {"tipo": "maquina", "x": 5, "y": 5}, {"tipo": "tapete_redondo", "x": 5, "y": 5}], "funcionarios": {"ideias": {"nome": "Ivy", "cor": "#112233"}}}
         codigo, d = self.j("POST", "/api/escritorio", ok)
         self.assertEqual(codigo, 200)
-        self.assertEqual(self.j("GET", "/api/escritorio")[1]["decoracao"], [{"tipo": "planta", "x": 10, "y": 20}])
+        self.assertEqual(self.j("GET", "/api/escritorio")[1]["decoracao"], [{"tipo": "planta", "x": 10, "y": 20}, {"tipo": "maquina", "x": 5, "y": 5}, {"tipo": "tapete_redondo", "x": 5, "y": 5}])
         ruins = [
             {"decoracao": [{"tipo": "<script>", "x": 1, "y": 1}]},
             {"decoracao": [{"tipo": "planta", "x": -1, "y": 1}]},
